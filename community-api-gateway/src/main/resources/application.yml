@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: community-api-gateway
+
+  cloud:
+    gateway:
+      routes:
+        - id: community-user-service
+          uri: lb://COMMUNITY-USER-SERVICE
+          predicates:
+            - Path=/api/auth/**,/api/users/**
+
+
+  output:
+    ansi:
+      enabled: ALWAYS
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org:
+      springframework:
+        cloud:
+          gateway: TRACE
