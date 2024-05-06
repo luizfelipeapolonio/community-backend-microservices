@@ -4,6 +4,7 @@ import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.repositories.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +21,7 @@ public class UserService {
     this.passwordEncoder = passwordEncoder;
   }
 
-  public User register(UserRegisterDTO userRegisterDTO) {
+  public User register(@Valid UserRegisterDTO userRegisterDTO) {
     Optional<User> existingUser = this.userRepository.findByEmail(userRegisterDTO.email());
 
     if(existingUser.isPresent()) {
