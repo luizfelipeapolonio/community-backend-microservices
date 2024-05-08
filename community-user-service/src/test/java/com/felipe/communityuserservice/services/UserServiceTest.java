@@ -1,8 +1,12 @@
 package com.felipe.communityuserservice.services;
 
+import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
+import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.repositories.UserRepository;
+import com.felipe.communityuserservice.security.JwtService;
+import com.felipe.communityuserservice.security.UserPrincipal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,18 +14,25 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchException;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
@@ -33,7 +44,16 @@ public class UserServiceTest {
   UserRepository userRepository;
 
   @Mock
+  JwtService jwtService;
+
+  @Mock
   PasswordEncoder passwordEncoder;
+
+  @Mock
+  AuthenticationManager authenticationManager;
+
+  @Mock
+  Authentication authentication;
 
   private List<User> users;
 
@@ -74,5 +94,57 @@ public class UserServiceTest {
     verify(this.userRepository, times(1)).findByEmail(userDTO.email());
     verify(this.passwordEncoder, times(1)).encode(userDTO.password());
     verify(this.userRepository, times(1)).save(any(User.class));
+  }
+
+  @Test
+  @DisplayName("register - Should throw a UserAlreadyExistsException if user already exists")
+  void registerUserFailsByExistingUser() {
+    UserRegisterDTO userRegisterDTO = new UserRegisterDTO("User 1", "user1@email.com", "123456");
+    User user = this.users.get(0);
+
+    when(this.userRepository.findByEmail(userRegisterDTO.email())).thenReturn(Optional.of(user));
+
+    Exception thrown = catchException(() -> this.userService.register(userRegisterDTO));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(UserAlreadyExistsException.class)
+      .hasMessage("Usuário de email 'user1@email.com' já cadastrado");
+
+    verify(this.userRepository, times(1)).findByEmail(userRegisterDTO.email());
+    verify(this.passwordEncoder, never()).encode(anyString());
+    verify(this.userRepository, never()).save(any(User.class));
+  }
+
+  @Test
+  @DisplayName("login - Should successfully log the user in, generate access token, and return the user info and the token")
+  void loginSuccess() {
+    UserLoginDTO userLoginDTO = new UserLoginDTO("user1@email.com", "123456");
+    var auth = new UsernamePasswordAuthenticationToken(userLoginDTO.email(), userLoginDTO.password());
+    User user = this.users.get(0);
+    UserPrincipal userPrincipal = new UserPrincipal(user);
+
+    when(this.authenticationManager.authenticate(auth)).thenReturn(this.authentication);
+    when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
+    when(this.jwtService.generateToken(userPrincipal)).thenReturn("Access Token");
+
+    Map<String, Object> loginResponse = this.userService.login(userLoginDTO);
+
+    assertThat(loginResponse.containsKey("user")).isTrue();
+    assertThat(loginResponse.containsKey("token")).isTrue();
+    assertThat(loginResponse.get("user"))
+      .extracting("id", "name", "email", "password", "createdAt", "updatedAt")
+      .contains(
+        user.getId(),
+        user.getName(),
+        user.getEmail(),
+        user.getPassword(),
+        user.getCreatedAt(),
+        user.getUpdatedAt()
+      );
+    assertThat(loginResponse.get("token")).isEqualTo("Access Token");
+
+    verify(this.authenticationManager, times(1)).authenticate(auth);
+    verify(this.authentication, times(1)).getPrincipal();
+    verify(this.jwtService, times(1)).generateToken(userPrincipal);
   }
 }
