@@ -5,7 +5,6 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.security.interfaces.RSAPrivateKey;
@@ -25,8 +24,7 @@ public class JwtService {
   @Value("${jwt.private.key}")
   private RSAPrivateKey privateKey;
 
-  public String generateToken(Authentication authentication) {
-    UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+  public String generateToken(UserPrincipal userPrincipal) {
     Algorithm algorithm = Algorithm.RSA256(this.publicKey, this.privateKey);
     return JWT.create()
       .withIssuer("community-user-service")
