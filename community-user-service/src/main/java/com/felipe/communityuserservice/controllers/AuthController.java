@@ -1,5 +1,7 @@
 package com.felipe.communityuserservice.controllers;
 
+import com.felipe.communityuserservice.dtos.UserLoginDTO;
+import com.felipe.communityuserservice.dtos.UserLoginResponseDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.dtos.UserResponseDTO;
 import com.felipe.communityuserservice.models.User;
@@ -14,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -36,6 +41,21 @@ public class AuthController {
     response.setCode(HttpStatus.CREATED);
     response.setMessage("Usuário criado com sucesso");
     response.setData(userResponseDTO);
+    return response;
+  }
+
+  @PostMapping("/login")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<UserLoginResponseDTO> login(@RequestBody @Valid UserLoginDTO userLoginDTO) {
+    Map<String, Object> loginMap = this.userService.login(userLoginDTO);
+    UserResponseDTO userResponseDTO = new UserResponseDTO((User) loginMap.get("user"));
+    UserLoginResponseDTO loginResponseDTO = new UserLoginResponseDTO(userResponseDTO, loginMap.get("token").toString());
+
+    CustomResponseBody<UserLoginResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Usuário logado");
+    response.setData(loginResponseDTO);
     return response;
   }
 }
