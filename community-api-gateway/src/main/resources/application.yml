@@ -8,8 +8,10 @@ spring:
         - id: community-user-service
           uri: lb://COMMUNITY-USER-SERVICE
           predicates:
-            - Path=/api/auth/**,/api/users/**
-
+            - Path=/auth/**,/users/**
+          filters:
+            - PrefixPath=/api
+            - AuthenticationFilter
 
   output:
     ansi:
@@ -30,4 +32,8 @@ logging:
     org:
       springframework:
         cloud:
-          gateway: TRACE
+          gateway: DEBUG
+  reactor:
+    netty:
+      http:
+        client: DEBUG
