@@ -1,11 +1,13 @@
 package com.felipe.communityuserservice.controllers;
 
 import com.auth0.jwt.exceptions.JWTCreationException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.utils.response.CustomResponseBody;
 import com.felipe.communityuserservice.utils.response.ResponseConditionStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -25,20 +27,9 @@ public class ExceptionControllerAdvice {
     return response;
   }
 
-  @ExceptionHandler(BadCredentialsException.class)
+  @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
-  public CustomResponseBody<Void> handleBadCredentialsException() {
-    CustomResponseBody<Void> response = new CustomResponseBody<>();
-    response.setStatus(ResponseConditionStatus.ERROR);
-    response.setCode(HttpStatus.UNAUTHORIZED);
-    response.setMessage("Usuário ou senha inválidos");
-    response.setData(null);
-    return response;
-  }
-
-  @ExceptionHandler(UsernameNotFoundException.class)
-  @ResponseStatus(HttpStatus.UNAUTHORIZED)
-  public CustomResponseBody<Void> handleUsernameNotFoundException(UsernameNotFoundException e) {
+  public CustomResponseBody<Void> handleAuthenticationException(AuthenticationException e) {
     CustomResponseBody<Void> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.ERROR);
     response.setCode(HttpStatus.UNAUTHORIZED);
@@ -49,7 +40,29 @@ public class ExceptionControllerAdvice {
 
   @ExceptionHandler(JWTCreationException.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-  public CustomResponseBody<Void> handleJWTCreationException() {
+  public CustomResponseBody<Void> handleJWTCreationException(JWTCreationException e) {
+    CustomResponseBody<Void> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.INTERNAL_SERVER_ERROR);
+    response.setMessage(e.getMessage());
+    response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(JWTVerificationException.class)
+  @ResponseStatus(HttpStatus.UNAUTHORIZED)
+  public CustomResponseBody<Void> handleJWTVerificationException(JWTVerificationException e) {
+    CustomResponseBody<Void> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.UNAUTHORIZED);
+    response.setMessage(e.getMessage());
+    response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(Exception.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public CustomResponseBody<Void> handleUncaughtException() {
     CustomResponseBody<Void> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.ERROR);
     response.setCode(HttpStatus.INTERNAL_SERVER_ERROR);
