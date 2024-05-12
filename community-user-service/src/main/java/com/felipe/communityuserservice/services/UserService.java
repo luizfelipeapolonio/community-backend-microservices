@@ -9,6 +9,7 @@ import com.felipe.communityuserservice.security.JwtService;
 import com.felipe.communityuserservice.security.UserPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -54,14 +55,23 @@ public class UserService {
   }
 
   public Map<String, Object> login(@Valid UserLoginDTO userLoginDTO) {
-    var auth = new UsernamePasswordAuthenticationToken(userLoginDTO.email(), userLoginDTO.password());
-    Authentication authentication = this.authenticationManager.authenticate(auth);
-    UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-    String token = this.jwtService.generateToken(userPrincipal);
+    try {
+      var auth = new UsernamePasswordAuthenticationToken(userLoginDTO.email(), userLoginDTO.password());
+      Authentication authentication = this.authenticationManager.authenticate(auth);
+      UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+      String token = this.jwtService.generateToken(userPrincipal);
 
-    Map<String, Object> loginResponse = new HashMap<>(2);
-    loginResponse.put("user", userPrincipal.getUser());
-    loginResponse.put("token", token);
-    return loginResponse;
+      Map<String, Object> loginResponse = new HashMap<>(2);
+      loginResponse.put("user", userPrincipal.getUser());
+      loginResponse.put("token", token);
+
+      return loginResponse;
+    } catch(BadCredentialsException e) {
+      throw new BadCredentialsException("Usuário ou senha inválidos", e);
+    }
+  }
+
+  public Map<String, String> validateToken(String token) {
+    return this.jwtService.validateToken(token);
   }
 }
