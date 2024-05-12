@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.Mockito.when;
@@ -149,5 +150,26 @@ public class AuthControllerTest {
       .andExpect(jsonPath("$.data.token").value(loginResponseDTO.token()));
 
     verify(this.userService, times(1)).login(userLoginDTO);
+  }
+
+  @Test
+  @DisplayName("validate - Should return a success response with OK status code and a map object with email and user id")
+  void validateSuccess() throws Exception {
+    String token = "Access Token";
+
+    Map<String, String> claims = new HashMap<>(2);
+    claims.put("email", "user1@email.com");
+    claims.put("userId", "01");
+
+    when(this.userService.validateToken(token)).thenReturn(claims);
+
+    this.mockMvc.perform(get(BASE_URL + "/validate")
+      .header("accessToken", token)
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.email").value(claims.get("email")))
+      .andExpect(jsonPath("$.userId").value(claims.get("userId")));
+
+    verify(this.userService, times(1)).validateToken(token);
   }
 }

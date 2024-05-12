@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -146,5 +147,25 @@ public class UserServiceTest {
     verify(this.authenticationManager, times(1)).authenticate(auth);
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.jwtService, times(1)).generateToken(userPrincipal);
+  }
+
+  @Test
+  @DisplayName("validateToken - Should successfully validate the access token and return a map object with email and user id")
+  void validateTokenSuccess() {
+    String token = "Access Token";
+    Map<String, String> claims = new HashMap<>(2);
+    claims.put("email", "user1@email.com");
+    claims.put("userId", "01");
+
+    when(this.jwtService.validateToken(token)).thenReturn(claims);
+
+    Map<String, String> extractedClaims = this.userService.validateToken(token);
+
+    assertThat(extractedClaims.containsKey("email")).isTrue();
+    assertThat(extractedClaims.containsKey("userId")).isTrue();
+    assertThat(extractedClaims.get("email")).isEqualTo(claims.get("email"));
+    assertThat(extractedClaims.get("userId")).isEqualTo(claims.get("userId"));
+
+    verify(this.jwtService, times(1)).validateToken(token);
   }
 }
