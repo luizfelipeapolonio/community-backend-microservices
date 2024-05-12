@@ -26,30 +26,29 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
   public GatewayFilter apply(Config config) {
     return ((exchange, chain) -> {
       ServerHttpRequest request = exchange.getRequest();
-      String token = null;
 
       if(this.routeValidator.isSecured.test(request)) {
-        if(this.isAuthMissing(request)) {
-          throw new MissingAuthException();
-        }
-
-        String authorizationHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if(authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-          token = this.extractToken(authorizationHeader);
-        }
-
-        // TODO: REST call to the user service to validate token
+        String authorizationHeader = this.extractAuthorizationHeader(request);
+        String token = this.extractToken(authorizationHeader);
         Map<String, String> claims = this.authService.validateToken(token);
+        String email = claims.get("email");
+        String userId = claims.get("userId");
 
-        System.out.println("email: " + claims.get("email"));
-        System.out.println("userId: " + claims.get("userId"));
+        request = request.mutate()
+          .header("email", email)
+          .header("userId", userId)
+          .build();
       }
-      return chain.filter(exchange);
+      return chain.filter(exchange.mutate().request(request).build());
     });
   }
 
-  private boolean isAuthMissing(ServerHttpRequest request) {
-    return !request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION);
+  private String extractAuthorizationHeader(ServerHttpRequest request) {
+    String authorizationHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+    if(authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+      throw new MissingAuthException();
+    }
+    return authorizationHeader;
   }
 
   private String extractToken(String authorizationHeader) {
