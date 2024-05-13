@@ -1,9 +1,11 @@
 package com.felipe.communityapigateway.services;
 
+import com.felipe.communityapigateway.exceptions.AuthValidationException;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
@@ -29,10 +31,15 @@ public class AuthService {
       userServiceUri = services.get(0).getUri();
     }
 
-    return this.restClient.get()
-      .uri(userServiceUri + "/api/auth/validate")
-      .header("accessToken", token)
-      .retrieve()
-      .body(new ParameterizedTypeReference<>() {});
+    try {
+      return this.restClient.get()
+        .uri(userServiceUri + "/api/auth/validate")
+        .header("accessToken", token)
+        .retrieve()
+        .body(new ParameterizedTypeReference<>() {
+        });
+    } catch(HttpClientErrorException e) {
+      throw new AuthValidationException(e.getResponseBodyAsString());
+    }
   }
 }
