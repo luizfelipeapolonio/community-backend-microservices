@@ -4,14 +4,18 @@ import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.utils.response.CustomResponseBody;
+import com.felipe.communityuserservice.utils.response.CustomValidationErrors;
 import com.felipe.communityuserservice.utils.response.ResponseConditionStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.List;
 
 @RestControllerAdvice
 public class ExceptionControllerAdvice {
@@ -35,6 +39,27 @@ public class ExceptionControllerAdvice {
     response.setCode(HttpStatus.UNAUTHORIZED);
     response.setMessage(e.getMessage());
     response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+  public CustomResponseBody<List<CustomValidationErrors>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    List<CustomValidationErrors> errors = e.getBindingResult()
+      .getFieldErrors()
+      .stream()
+      .map(fieldError -> new CustomValidationErrors(
+        fieldError.getField(),
+        fieldError.getField().equalsIgnoreCase("password") ? "" : fieldError.getRejectedValue(),
+        fieldError.getDefaultMessage()
+      ))
+      .toList();
+
+    CustomResponseBody<List<CustomValidationErrors>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.UNPROCESSABLE_ENTITY);
+    response.setMessage("Erros de validação");
+    response.setData(errors);
     return response;
   }
 
