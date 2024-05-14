@@ -8,7 +8,7 @@ import org.hibernate.validator.constraints.Length;
 public record UserRegisterDTO(
   @NotNull(message = "O nome é obrigatório")
   @NotBlank(message = "O nome não deve estar em branco")
-  @Length(min = 1, max = 100, message = "O nome não deve ter mais de 100 caracteres")
+  @Length(max = 100, message = "O nome não deve ter mais de 100 caracteres")
   String name,
 
   @NotNull(message = "O e-mail é obrigatório")
