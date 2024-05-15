@@ -20,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -148,6 +149,26 @@ public class AuthControllerTest {
       .andExpect(jsonPath("$.data.userInfo.createdAt").value(loginResponseDTO.userInfo().createdAt().toString()))
       .andExpect(jsonPath("$.data.userInfo.updatedAt").value(loginResponseDTO.userInfo().updatedAt().toString()))
       .andExpect(jsonPath("$.data.token").value(loginResponseDTO.token()));
+
+    verify(this.userService, times(1)).login(userLoginDTO);
+  }
+
+  @Test
+  @DisplayName("login - Should return an error response with unauthorized status code")
+  void loginFailsByInvalidCredentials() throws Exception {
+    UserLoginDTO userLoginDTO = new UserLoginDTO("user1@email.com", "123456");
+    String jsonBody = this.objectMapper.writeValueAsString(userLoginDTO);
+
+    when(this.userService.login(userLoginDTO)).thenThrow(new BadCredentialsException("Usuário ou senha inválidos"));
+
+    this.mockMvc.perform(post(BASE_URL + "/login")
+      .contentType(MediaType.APPLICATION_JSON).content(jsonBody)
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isUnauthorized())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.UNAUTHORIZED.value()))
+      .andExpect(jsonPath("$.message").value("Usuário ou senha inválidos"))
+      .andExpect(jsonPath("$.data").doesNotExist());
 
     verify(this.userService, times(1)).login(userLoginDTO);
   }
