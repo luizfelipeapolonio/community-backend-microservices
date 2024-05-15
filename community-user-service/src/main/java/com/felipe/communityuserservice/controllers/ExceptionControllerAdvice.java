@@ -2,6 +2,7 @@ package com.felipe.communityuserservice.controllers;
 
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.felipe.communityuserservice.exceptions.RecordNotFoundException;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.utils.response.CustomResponseBody;
 import com.felipe.communityuserservice.utils.response.CustomValidationErrors;
@@ -26,6 +27,17 @@ public class ExceptionControllerAdvice {
     CustomResponseBody<Void> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.ERROR);
     response.setCode(HttpStatus.CONFLICT);
+    response.setMessage(e.getMessage());
+    response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(RecordNotFoundException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public CustomResponseBody<Void> handleRecordNotFoundException(RecordNotFoundException e) {
+    CustomResponseBody<Void> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.NOT_FOUND);
     response.setMessage(e.getMessage());
     response.setData(null);
     return response;
