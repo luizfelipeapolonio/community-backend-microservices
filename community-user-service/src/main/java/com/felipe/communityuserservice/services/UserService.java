@@ -5,6 +5,7 @@ import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.repositories.UserRepository;
+import com.felipe.communityuserservice.security.AuthService;
 import com.felipe.communityuserservice.security.JwtService;
 import com.felipe.communityuserservice.security.UserPrincipal;
 import jakarta.validation.Valid;
@@ -26,17 +27,20 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
+  private final AuthService authService;
 
   public UserService(
     UserRepository userRepository,
     PasswordEncoder passwordEncoder,
     AuthenticationManager authenticationManager,
-    JwtService jwtService
+    JwtService jwtService,
+    AuthService authService
   ) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
     this.jwtService = jwtService;
+    this.authService = authService;
   }
 
   public User register(@Valid UserRegisterDTO userRegisterDTO) {
@@ -73,5 +77,11 @@ public class UserService {
 
   public Map<String, String> validateToken(String token) {
     return this.jwtService.validateToken(token);
+  }
+
+  public User getAuthenticatedUserProfile() {
+    Authentication authentication = this.authService.getAuthentication();
+    UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+    return userPrincipal.getUser();
   }
 }
