@@ -30,7 +30,6 @@ public class SecurityConfiguration {
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(authorize -> authorize
         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/validate").permitAll()
-        .requestMatchers("/api/users/test").permitAll()
         .anyRequest().authenticated())
       .addFilterBefore(this.securityFilter, UsernamePasswordAuthenticationFilter.class)
       .build();
