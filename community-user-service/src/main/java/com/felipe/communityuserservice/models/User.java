@@ -31,6 +31,9 @@ public class User {
   @Column(name = "profile_image")
   private String profileImage;
 
+  @Column(length = 150)
+  private String bio;
+
   @CreationTimestamp
   @Column(name = "created_at", columnDefinition = "TIMESTAMP(2)", nullable = false)
   private LocalDateTime createdAt;
@@ -79,6 +82,14 @@ public class User {
 
   public void setProfileImage(String profileImage) {
     this.profileImage = profileImage;
+  }
+
+  public String getBio() {
+    return this.bio;
+  }
+
+  public void setBio(String bio) {
+    this.bio = bio;
   }
 
   public LocalDateTime getCreatedAt() {
