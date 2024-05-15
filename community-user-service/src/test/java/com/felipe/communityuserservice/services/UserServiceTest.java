@@ -5,6 +5,7 @@ import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.repositories.UserRepository;
+import com.felipe.communityuserservice.security.AuthService;
 import com.felipe.communityuserservice.security.JwtService;
 import com.felipe.communityuserservice.security.UserPrincipal;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -46,6 +48,9 @@ public class UserServiceTest {
 
   @Mock
   JwtService jwtService;
+
+  @Mock
+  AuthService authService;
 
   @Mock
   PasswordEncoder passwordEncoder;
@@ -150,6 +155,21 @@ public class UserServiceTest {
   }
 
   @Test
+  @DisplayName("login - Should throw a BadCredentialsException if the given credentials is invalid")
+  void loginFailsByInvalidCredentials() {
+    UserLoginDTO userLoginDTO = new UserLoginDTO("user1@email.com", "123456");
+    var auth = new UsernamePasswordAuthenticationToken(userLoginDTO.email(), userLoginDTO.password());
+
+    when(this.authenticationManager.authenticate(auth)).thenThrow(BadCredentialsException.class);
+
+    Exception thrown = catchException(() -> this.userService.login(userLoginDTO));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(BadCredentialsException.class)
+      .hasMessage("Usuário ou senha inválidos");
+  }
+
+  @Test
   @DisplayName("validateToken - Should successfully validate the access token and return a map object with email and user id")
   void validateTokenSuccess() {
     String token = "Access Token";
@@ -167,5 +187,22 @@ public class UserServiceTest {
     assertThat(extractedClaims.get("userId")).isEqualTo(claims.get("userId"));
 
     verify(this.jwtService, times(1)).validateToken(token);
+  }
+
+  @Test
+  @DisplayName("getAuthenticatedUserProfile - Should successfully return the authenticated user")
+  void getAuthenticatedUserProfileSuccess() {
+    User user = this.users.get(0);
+    UserPrincipal userPrincipal = new UserPrincipal(user);
+
+    when(this.authService.getAuthentication()).thenReturn(this.authentication);
+    when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
+
+    User authenticatedUser = this.userService.getAuthenticatedUserProfile();
+
+    assertThat(authenticatedUser).isEqualTo(user);
+
+    verify(this.authService, times(1)).getAuthentication();
+    verify(this.authentication, times(1)).getPrincipal();
   }
 }
