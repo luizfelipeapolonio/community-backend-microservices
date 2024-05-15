@@ -7,6 +7,7 @@ import com.felipe.communityuserservice.utils.response.CustomResponseBody;
 import com.felipe.communityuserservice.utils.response.ResponseConditionStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,6 +32,20 @@ public class UserController {
     response.setStatus(ResponseConditionStatus.SUCCESS);
     response.setCode(HttpStatus.OK);
     response.setMessage("Usuário autenticado");
+    response.setData(userResponseDTO);
+    return response;
+  }
+
+  @GetMapping("/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<UserResponseDTO> getProfile(@PathVariable String userId) {
+    User foundUser = this.userService.getProfile(userId);
+    UserResponseDTO userResponseDTO = new UserResponseDTO(foundUser);
+
+    CustomResponseBody<UserResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Usuário encontrado");
     response.setData(userResponseDTO);
     return response;
   }

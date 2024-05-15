@@ -2,6 +2,7 @@ package com.felipe.communityuserservice.services;
 
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
+import com.felipe.communityuserservice.exceptions.RecordNotFoundException;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.repositories.UserRepository;
@@ -83,5 +84,10 @@ public class UserService {
     Authentication authentication = this.authService.getAuthentication();
     UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
     return userPrincipal.getUser();
+  }
+
+  public User getProfile(String userId) {
+    return this.userRepository.findById(userId)
+      .orElseThrow(() -> new RecordNotFoundException("Usuário de id '" + userId + "' não encontrado"));
   }
 }
