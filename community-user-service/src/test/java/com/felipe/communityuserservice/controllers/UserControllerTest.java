@@ -2,6 +2,7 @@ package com.felipe.communityuserservice.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.felipe.communityuserservice.dtos.UserResponseDTO;
+import com.felipe.communityuserservice.exceptions.RecordNotFoundException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.services.UserService;
 import com.felipe.communityuserservice.utils.response.ResponseConditionStatus;
@@ -83,5 +84,44 @@ public class UserControllerTest {
       .andExpect(jsonPath("$.data.updatedAt").value(userResponseDTO.updatedAt().toString()));
 
     verify(this.userService, times(1)).getAuthenticatedUserProfile();
+  }
+
+  @Test
+  @DisplayName("getProfile - Should return a success response with Ok status code and the found user profile")
+  void getProfileSuccess() throws Exception {
+    User user = this.user;
+    UserResponseDTO userResponseDTO = new UserResponseDTO(user);
+
+    when(this.userService.getProfile("01")).thenReturn(user);
+
+    this.mockMvc.perform(get(BASE_URL + "/01").accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Usuário encontrado"))
+      .andExpect(jsonPath("$.data.id").value(userResponseDTO.id()))
+      .andExpect(jsonPath("$.data.name").value(userResponseDTO.name()))
+      .andExpect(jsonPath("$.data.email").value(userResponseDTO.email()))
+      .andExpect(jsonPath("$.data.password").doesNotExist())
+      .andExpect(jsonPath("$.data.createdAt").value(userResponseDTO.createdAt().toString()))
+      .andExpect(jsonPath("$.data.updatedAt").value(userResponseDTO.updatedAt().toString()));
+
+    verify(this.userService, times(1)).getProfile("01");
+  }
+
+  @Test
+  @DisplayName("getProfile - Should return an error response with not found status code")
+  void getProfileFailsByUserNotFound() throws Exception {
+    when(this.userService.getProfile("01"))
+      .thenThrow(new RecordNotFoundException("Usuário de id '01' não encontrado"));
+
+    this.mockMvc.perform(get(BASE_URL + "/01").accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isNotFound())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
+      .andExpect(jsonPath("$.message").value("Usuário de id '01' não encontrado"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.userService, times(1)).getProfile("01");
   }
 }

@@ -2,6 +2,7 @@ package com.felipe.communityuserservice.services;
 
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
+import com.felipe.communityuserservice.exceptions.RecordNotFoundException;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.repositories.UserRepository;
@@ -22,9 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -61,29 +60,28 @@ public class UserServiceTest {
   @Mock
   Authentication authentication;
 
-  private List<User> users;
+  private User user;
 
   @BeforeEach
   void setUp() {
     LocalDateTime mockDateTime = LocalDateTime.parse("2024-01-01T12:00:00.123456");
 
-    User user1 = new User();
-    user1.setId("01");
-    user1.setName("User 1");
-    user1.setEmail("user1@email.com");
-    user1.setPassword("123456");
-    user1.setCreatedAt(mockDateTime);
-    user1.setUpdatedAt(mockDateTime);
+    User user = new User();
+    user.setId("01");
+    user.setName("User 1");
+    user.setEmail("user1@email.com");
+    user.setPassword("123456");
+    user.setCreatedAt(mockDateTime);
+    user.setUpdatedAt(mockDateTime);
 
-    this.users = new ArrayList<>();
-    this.users.add(user1);
+    this.user = user;
   }
 
   @Test
   @DisplayName("register - Should successfully create a user and return it")
   void registerUserSuccess() {
     UserRegisterDTO userDTO = new UserRegisterDTO("User 1", "user1@email.com", "123456");
-    User user = this.users.get(0);
+    User user = this.user;
 
     when(this.userRepository.findByEmail(userDTO.email())).thenReturn(Optional.empty());
     when(this.passwordEncoder.encode(userDTO.password())).thenReturn("Encoded password");
@@ -106,7 +104,7 @@ public class UserServiceTest {
   @DisplayName("register - Should throw a UserAlreadyExistsException if user already exists")
   void registerUserFailsByExistingUser() {
     UserRegisterDTO userRegisterDTO = new UserRegisterDTO("User 1", "user1@email.com", "123456");
-    User user = this.users.get(0);
+    User user = this.user;
 
     when(this.userRepository.findByEmail(userRegisterDTO.email())).thenReturn(Optional.of(user));
 
@@ -126,7 +124,7 @@ public class UserServiceTest {
   void loginSuccess() {
     UserLoginDTO userLoginDTO = new UserLoginDTO("user1@email.com", "123456");
     var auth = new UsernamePasswordAuthenticationToken(userLoginDTO.email(), userLoginDTO.password());
-    User user = this.users.get(0);
+    User user = this.user;
     UserPrincipal userPrincipal = new UserPrincipal(user);
 
     when(this.authenticationManager.authenticate(auth)).thenReturn(this.authentication);
@@ -192,7 +190,7 @@ public class UserServiceTest {
   @Test
   @DisplayName("getAuthenticatedUserProfile - Should successfully return the authenticated user")
   void getAuthenticatedUserProfileSuccess() {
-    User user = this.users.get(0);
+    User user = this.user;
     UserPrincipal userPrincipal = new UserPrincipal(user);
 
     when(this.authService.getAuthentication()).thenReturn(this.authentication);
@@ -204,5 +202,32 @@ public class UserServiceTest {
 
     verify(this.authService, times(1)).getAuthentication();
     verify(this.authentication, times(1)).getPrincipal();
+  }
+
+  @Test
+  @DisplayName("getProfile - Should successfully get a user by id and return it")
+  void getProfileSuccess() {
+    User user = this.user;
+
+    when(this.userRepository.findById("01")).thenReturn(Optional.of(user));
+
+    User foundUser = this.userService.getProfile("01");
+
+    assertThat(foundUser).isEqualTo(user);
+    verify(this.userRepository, times(1)).findById("01");
+  }
+
+  @Test
+  @DisplayName("getProfile - Should throw a RecordNotFoundException if the user is not found")
+  void getProfileFailsByUserNotFound() {
+    when(this.userRepository.findById("01")).thenReturn(Optional.empty());
+
+    Exception thrown = catchException(() -> this.userService.getProfile("01"));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(RecordNotFoundException.class)
+      .hasMessage("Usuário de id '01' não encontrado");
+
+    verify(this.userRepository, times(1)).findById("01");
   }
 }
