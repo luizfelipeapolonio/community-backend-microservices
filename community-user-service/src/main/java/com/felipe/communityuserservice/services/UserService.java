@@ -2,6 +2,7 @@ package com.felipe.communityuserservice.services;
 
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
+import com.felipe.communityuserservice.dtos.UserUpdateDTO;
 import com.felipe.communityuserservice.exceptions.RecordNotFoundException;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
@@ -10,6 +11,7 @@ import com.felipe.communityuserservice.security.AuthService;
 import com.felipe.communityuserservice.security.JwtService;
 import com.felipe.communityuserservice.security.UserPrincipal;
 import jakarta.validation.Valid;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -88,6 +90,31 @@ public class UserService {
 
   public User getProfile(String userId) {
     return this.userRepository.findById(userId)
+      .orElseThrow(() -> new RecordNotFoundException("Usuário de id '" + userId + "' não encontrado"));
+  }
+
+  public User update(String userId, @Valid UserUpdateDTO userUpdateDTO) {
+    Authentication authentication = this.authService.getAuthentication();
+    UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+    String authenticatedUserId = userPrincipal.getUser().getId();
+
+    if(!userId.equals(authenticatedUserId)) {
+      throw new AccessDeniedException("Acesso negado: Você não tem permissão para modificar este recurso");
+    }
+
+    return this.userRepository.findById(userId)
+      .map(foundUser -> {
+        if(userUpdateDTO.name() != null) {
+          foundUser.setName(userUpdateDTO.name());
+        }
+        if(userUpdateDTO.password() != null) {
+          foundUser.setPassword(this.passwordEncoder.encode(userUpdateDTO.password()));
+        }
+        if(userUpdateDTO.bio() != null) {
+          foundUser.setBio(userUpdateDTO.bio());
+        }
+        return this.userRepository.save(foundUser);
+      })
       .orElseThrow(() -> new RecordNotFoundException("Usuário de id '" + userId + "' não encontrado"));
   }
 }
