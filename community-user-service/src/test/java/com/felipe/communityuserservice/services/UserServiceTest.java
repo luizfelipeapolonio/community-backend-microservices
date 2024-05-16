@@ -2,6 +2,7 @@ package com.felipe.communityuserservice.services;
 
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
+import com.felipe.communityuserservice.dtos.UserUpdateDTO;
 import com.felipe.communityuserservice.exceptions.RecordNotFoundException;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -229,5 +231,90 @@ public class UserServiceTest {
       .hasMessage("Usuário de id '01' não encontrado");
 
     verify(this.userRepository, times(1)).findById("01");
+  }
+
+  @Test
+  @DisplayName("update - Should successfully update a user and return it")
+  void updateSuccess() {
+    User user = this.user;
+    UserPrincipal userPrincipal = new UserPrincipal(user);
+    UserUpdateDTO userUpdateDTO = new UserUpdateDTO("Updated name", "654321", "This is something meaningful");
+
+    User updatedUserEntity = new User();
+    updatedUserEntity.setId(user.getId());
+    updatedUserEntity.setName(userUpdateDTO.name());
+    updatedUserEntity.setEmail(user.getEmail());
+    updatedUserEntity.setPassword(userUpdateDTO.password());
+    updatedUserEntity.setProfileImage(user.getProfileImage());
+    updatedUserEntity.setBio(userUpdateDTO.bio());
+    updatedUserEntity.setCreatedAt(user.getCreatedAt());
+    updatedUserEntity.setUpdatedAt(user.getUpdatedAt());
+
+    when(this.authService.getAuthentication()).thenReturn(this.authentication);
+    when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
+    when(this.passwordEncoder.encode(userUpdateDTO.password())).thenReturn("Encoded password");
+    when(this.userRepository.findById("01")).thenReturn(Optional.of(user));
+    when(this.userRepository.save(user)).thenReturn(updatedUserEntity);
+
+    User updatedUser = this.userService.update("01", userUpdateDTO);
+
+    assertThat(updatedUser.getId()).isEqualTo(updatedUserEntity.getId());
+    assertThat(updatedUser.getName()).isEqualTo(updatedUserEntity.getName());
+    assertThat(updatedUser.getPassword()).isEqualTo(updatedUserEntity.getPassword());
+    assertThat(updatedUser.getProfileImage()).isEqualTo(updatedUserEntity.getProfileImage());
+    assertThat(updatedUser.getBio()).isEqualTo(updatedUserEntity.getBio());
+    assertThat(updatedUser.getCreatedAt()).isEqualTo(updatedUserEntity.getCreatedAt());
+    assertThat(updatedUser.getUpdatedAt()).isEqualTo(updatedUserEntity.getUpdatedAt());
+
+    verify(this.authService, times(1)).getAuthentication();
+    verify(this.authentication, times(1)).getPrincipal();
+    verify(this.passwordEncoder, times(1)).encode(userUpdateDTO.password());
+    verify(this.userRepository, times(1)).findById("01");
+    verify(this.userRepository, times(1)).save(user);
+  }
+
+  @Test
+  @DisplayName("update - Should throw an AccessDeniedException if the given user id is different from authenticated user id")
+  void updateFailsByAccessDenied() {
+    UserPrincipal userPrincipal = new UserPrincipal(this.user);
+    UserUpdateDTO userUpdateDTO = new UserUpdateDTO("Updated name", "123456", "Anything");
+
+    when(this.authService.getAuthentication()).thenReturn(this.authentication);
+    when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
+
+    Exception thrown = catchException(() -> this.userService.update("02", userUpdateDTO));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(AccessDeniedException.class)
+      .hasMessage("Acesso negado: Você não tem permissão para modificar este recurso");
+
+    verify(this.authService, times(1)).getAuthentication();
+    verify(this.authentication, times(1)).getPrincipal();
+    verify(this.userRepository, never()).findById(anyString());
+    verify(this.passwordEncoder, never()).encode(anyString());
+    verify(this.userRepository, never()).save(any(User.class));
+  }
+
+  @Test
+  @DisplayName("update - Should throw a RecordNotFoundException if the user is not found")
+  void updateFailsByUserNotFound() {
+    UserPrincipal userPrincipal = new UserPrincipal(this.user);
+    UserUpdateDTO userUpdateDTO = new UserUpdateDTO("Updated name", "123456", "Anything");
+
+    when(this.authService.getAuthentication()).thenReturn(this.authentication);
+    when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
+    when(this.userRepository.findById("01")).thenReturn(Optional.empty());
+
+    Exception thrown = catchException(() -> this.userService.update("01", userUpdateDTO));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(RecordNotFoundException.class)
+      .hasMessage("Usuário de id '01' não encontrado");
+
+    verify(this.authService, times(1)).getAuthentication();
+    verify(this.authentication, times(1)).getPrincipal();
+    verify(this.userRepository, times(1)).findById("01");
+    verify(this.passwordEncoder, never()).encode(anyString());
+    verify(this.userRepository, never()).save(any(User.class));
   }
 }
