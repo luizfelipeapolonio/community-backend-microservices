@@ -8,6 +8,7 @@ import com.felipe.communityuserservice.utils.response.CustomResponseBody;
 import com.felipe.communityuserservice.utils.response.ResponseConditionStatus;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -37,6 +41,23 @@ public class UserController {
     response.setCode(HttpStatus.OK);
     response.setMessage("Usuário autenticado");
     response.setData(userResponseDTO);
+    return response;
+  }
+
+  @DeleteMapping("/me")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<Map<String, UserResponseDTO>> deleteAuthenticatedUserProfile() {
+    User deletedUser = this.userService.deleteAuthenticatedUserProfile();
+    UserResponseDTO userResponseDTO = new UserResponseDTO(deletedUser);
+
+    Map<String, UserResponseDTO> deletedUserMap = new HashMap<>(1);
+    deletedUserMap.put("deletedUser", userResponseDTO);
+
+    CustomResponseBody<Map<String, UserResponseDTO>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Usuário excluído com sucesso");
+    response.setData(deletedUserMap);
     return response;
   }
 

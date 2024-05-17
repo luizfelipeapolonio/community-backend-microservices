@@ -117,4 +117,12 @@ public class UserService {
       })
       .orElseThrow(() -> new RecordNotFoundException("Usuário de id '" + userId + "' não encontrado"));
   }
+
+  public User deleteAuthenticatedUserProfile() {
+    Authentication authentication = this.authService.getAuthentication();
+    UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+    User authenticatedUser = userPrincipal.getUser();
+    this.userRepository.deleteById(authenticatedUser.getId());
+    return authenticatedUser;
+  }
 }
