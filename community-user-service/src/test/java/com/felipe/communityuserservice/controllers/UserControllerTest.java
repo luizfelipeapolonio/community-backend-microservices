@@ -23,7 +23,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -200,5 +203,32 @@ public class UserControllerTest {
       .andExpect(jsonPath("$.data").doesNotExist());
 
     verify(this.userService, times(1)).update("02", userUpdateDTO);
+  }
+
+  @Test
+  @DisplayName("delete - Should return a success response with Ok status code and the deleted user")
+  void deleteAuthenticatedUserProfileSuccess() throws Exception {
+    User user = this.user;
+    UserResponseDTO userResponseDTO = new UserResponseDTO(user);
+
+    Map<String, UserResponseDTO> deletedUserMap = new HashMap<>(1);
+    deletedUserMap.put("deletedUser", userResponseDTO);
+
+    when(this.userService.deleteAuthenticatedUserProfile()).thenReturn(user);
+
+    this.mockMvc.perform(delete(BASE_URL + "/me").accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Usuário excluído com sucesso"))
+      .andExpect(jsonPath("$.data.deletedUser.id").value(deletedUserMap.get("deletedUser").id()))
+      .andExpect(jsonPath("$.data.deletedUser.name").value(deletedUserMap.get("deletedUser").name()))
+      .andExpect(jsonPath("$.data.deletedUser.email").value(deletedUserMap.get("deletedUser").email()))
+      .andExpect(jsonPath("$.data.deletedUser.password").doesNotExist())
+      .andExpect(jsonPath("$.data.deletedUser.bio").value(deletedUserMap.get("deletedUser").bio()))
+      .andExpect(jsonPath("$.data.deletedUser.createdAt").value(deletedUserMap.get("deletedUser").createdAt().toString()))
+      .andExpect(jsonPath("$.data.deletedUser.updatedAt").value(deletedUserMap.get("deletedUser").updatedAt().toString()));
+
+    verify(this.userService, times(1)).deleteAuthenticatedUserProfile();
   }
 }

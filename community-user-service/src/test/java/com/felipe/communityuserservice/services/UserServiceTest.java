@@ -35,6 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doNothing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 
@@ -316,5 +317,29 @@ public class UserServiceTest {
     verify(this.userRepository, times(1)).findById("01");
     verify(this.passwordEncoder, never()).encode(anyString());
     verify(this.userRepository, never()).save(any(User.class));
+  }
+
+  @Test
+  @DisplayName("delete - Should successfully delete the authenticated user and return it")
+  void deleteSuccess() {
+    User user = this.user;
+    UserPrincipal userPrincipal = new UserPrincipal(user);
+
+    when(this.authService.getAuthentication()).thenReturn(this.authentication);
+    when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
+    doNothing().when(this.userRepository).deleteById(userPrincipal.getUser().getId());
+
+    User deletedUser = this.userService.deleteAuthenticatedUserProfile();
+
+    assertThat(deletedUser.getId()).isEqualTo(userPrincipal.getUser().getId());
+    assertThat(deletedUser.getName()).isEqualTo(userPrincipal.getUser().getName());
+    assertThat(deletedUser.getEmail()).isEqualTo(userPrincipal.getUser().getEmail());
+    assertThat(deletedUser.getBio()).isEqualTo(userPrincipal.getUser().getBio());
+    assertThat(deletedUser.getCreatedAt()).isEqualTo(userPrincipal.getUser().getCreatedAt());
+    assertThat(deletedUser.getUpdatedAt()).isEqualTo(userPrincipal.getUser().getUpdatedAt());
+
+    verify(this.authService, times(1)).getAuthentication();
+    verify(this.authentication, times(1)).getPrincipal();
+    verify(this.userRepository, times(1)).deleteById(user.getId());
   }
 }
