@@ -1,7 +1,9 @@
 package com.felipe.communityuploadservice.services;
 
 import com.felipe.communityuploadservice.dtos.UploadDTO;
+import com.felipe.communityuploadservice.exceptions.ImageAlreadyExistsException;
 import com.felipe.communityuploadservice.exceptions.InvalidFileTypeException;
+import com.felipe.communityuploadservice.exceptions.UploadFailureException;
 import com.felipe.communityuploadservice.models.Image;
 import com.felipe.communityuploadservice.repositories.UploadRepository;
 import com.felipe.communityuploadservice.system.config.StorageProperties;
@@ -9,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,9 +33,13 @@ public class UploadService {
       throw new InvalidFileTypeException("Arquivo inválido! Por favor, envie apenas PNG ou JPEG");
     }
 
+    String imageName = this.generateImageName(image);
+    String imagePath = Paths.get(uploadDTO.target(), imageName).toString();
+
     Image newImage = new Image();
-    newImage.setName(this.generateImageName(image));
+    newImage.setName(imageName);
     newImage.setSize(image.getSize());
+    newImage.setPath(imagePath);
 
     if(uploadDTO.target().equals("user")) {
       newImage.setUserId(uploadDTO.postOrUserId());
@@ -45,9 +51,11 @@ public class UploadService {
       Path uploadLocation = Paths.get(this.rootUploadPath.toString(), uploadDTO.target()).normalize();
       Files.copy(image.getInputStream(), uploadLocation.resolve(newImage.getName()));
       return this.uploadRepository.save(newImage);
-    } catch(IOException e) {
-      // TODO: tratar as exceções
-      throw new RuntimeException(e.getMessage(), e);
+    } catch(Exception e) {
+      if(e instanceof FileAlreadyExistsException) {
+        throw new ImageAlreadyExistsException("Imagem '" + newImage.getName() + "' já existe");
+      }
+      throw new UploadFailureException("Ocorreu um erro! Não foi possível concluir o upload", e);
     }
   }
 
