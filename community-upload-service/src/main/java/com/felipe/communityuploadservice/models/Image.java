@@ -20,7 +20,9 @@ public class Image {
 
   private String name;
 
-  // TODO: Colocar field "size"
+  @Column(nullable = false)
+  private String path;
+
   private long size;
 
   @Column(name = "post_id")
@@ -57,6 +59,14 @@ public class Image {
 
   public void setSize(long size) {
     this.size = size;
+  }
+
+  public String getPath() {
+    return this.path;
+  }
+
+  public void setPath(String path) {
+    this.path = path;
   }
 
   public String getPostId() {
