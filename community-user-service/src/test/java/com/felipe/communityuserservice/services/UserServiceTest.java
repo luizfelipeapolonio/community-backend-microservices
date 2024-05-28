@@ -1,5 +1,7 @@
 package com.felipe.communityuserservice.services;
 
+import com.felipe.communityuserservice.dtos.UploadDTO;
+import com.felipe.communityuserservice.dtos.UploadResponseDTO;
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.dtos.UserUpdateDTO;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -53,6 +56,9 @@ public class UserServiceTest {
 
   @Mock
   AuthService authService;
+
+  @Mock
+  UploadService uploadService;
 
   @Mock
   PasswordEncoder passwordEncoder;
@@ -240,37 +246,46 @@ public class UserServiceTest {
     User user = this.user;
     UserPrincipal userPrincipal = new UserPrincipal(user);
     UserUpdateDTO userUpdateDTO = new UserUpdateDTO("Updated name", "654321", "This is something meaningful");
-
-    User updatedUserEntity = new User();
-    updatedUserEntity.setId(user.getId());
-    updatedUserEntity.setName(userUpdateDTO.name());
-    updatedUserEntity.setEmail(user.getEmail());
-    updatedUserEntity.setPassword(userUpdateDTO.password());
-    updatedUserEntity.setProfileImage(user.getProfileImage());
-    updatedUserEntity.setBio(userUpdateDTO.bio());
-    updatedUserEntity.setCreatedAt(user.getCreatedAt());
-    updatedUserEntity.setUpdatedAt(user.getUpdatedAt());
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "file",
+      "file.txt",
+      "text/plain",
+      "Mock test file".getBytes()
+    );
+    UploadDTO uploadDTO = new UploadDTO("user", user.getId());
+    UploadResponseDTO uploadResponseDTO = new UploadResponseDTO(
+      "012345",
+      "image.jpg",
+      "path/image.jpg",
+      2000L,
+      null,
+      user.getId(),
+      LocalDateTime.parse("2024-01-01T12:00:00.123456")
+    );
 
     when(this.authService.getAuthentication()).thenReturn(this.authentication);
     when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
     when(this.passwordEncoder.encode(userUpdateDTO.password())).thenReturn("Encoded password");
     when(this.userRepository.findById("01")).thenReturn(Optional.of(user));
-    when(this.userRepository.save(user)).thenReturn(updatedUserEntity);
+    when(this.uploadService.upload(uploadDTO, mockFile)).thenReturn(uploadResponseDTO);
+    when(this.userRepository.save(user)).thenReturn(user);
 
-    User updatedUser = this.userService.update("01", userUpdateDTO);
+    User updatedUser = this.userService.update("01", userUpdateDTO, mockFile);
 
-    assertThat(updatedUser.getId()).isEqualTo(updatedUserEntity.getId());
-    assertThat(updatedUser.getName()).isEqualTo(updatedUserEntity.getName());
-    assertThat(updatedUser.getPassword()).isEqualTo(updatedUserEntity.getPassword());
-    assertThat(updatedUser.getProfileImage()).isEqualTo(updatedUserEntity.getProfileImage());
-    assertThat(updatedUser.getBio()).isEqualTo(updatedUserEntity.getBio());
-    assertThat(updatedUser.getCreatedAt()).isEqualTo(updatedUserEntity.getCreatedAt());
-    assertThat(updatedUser.getUpdatedAt()).isEqualTo(updatedUserEntity.getUpdatedAt());
+    assertThat(updatedUser.getId()).isEqualTo(user.getId());
+    assertThat(updatedUser.getName()).isEqualTo(userUpdateDTO.name());
+    assertThat(updatedUser.getPassword()).isEqualTo("Encoded password");
+    assertThat(updatedUser.getBio()).isEqualTo(userUpdateDTO.bio());
+    assertThat(updatedUser.getProfileImage()).isEqualTo(uploadResponseDTO.id());
+    assertThat(updatedUser.getCreatedAt()).isEqualTo(user.getCreatedAt());
+    assertThat(updatedUser.getUpdatedAt()).isEqualTo(user.getUpdatedAt());
+    assertThat(user).isEqualTo(updatedUser);
 
     verify(this.authService, times(1)).getAuthentication();
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.passwordEncoder, times(1)).encode(userUpdateDTO.password());
     verify(this.userRepository, times(1)).findById("01");
+    verify(this.uploadService, times(1)).upload(uploadDTO, mockFile);
     verify(this.userRepository, times(1)).save(user);
   }
 
@@ -279,11 +294,17 @@ public class UserServiceTest {
   void updateFailsByAccessDenied() {
     UserPrincipal userPrincipal = new UserPrincipal(this.user);
     UserUpdateDTO userUpdateDTO = new UserUpdateDTO("Updated name", "123456", "Anything");
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "file",
+      "file.txt",
+      "text/plain",
+      "Mock test file".getBytes()
+    );
 
     when(this.authService.getAuthentication()).thenReturn(this.authentication);
     when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
 
-    Exception thrown = catchException(() -> this.userService.update("02", userUpdateDTO));
+    Exception thrown = catchException(() -> this.userService.update("02", userUpdateDTO, mockFile));
 
     assertThat(thrown)
       .isExactlyInstanceOf(AccessDeniedException.class)
@@ -292,6 +313,7 @@ public class UserServiceTest {
     verify(this.authService, times(1)).getAuthentication();
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.userRepository, never()).findById(anyString());
+    verify(this.uploadService, never()).upload(any(UploadDTO.class), any(MockMultipartFile.class));
     verify(this.passwordEncoder, never()).encode(anyString());
     verify(this.userRepository, never()).save(any(User.class));
   }
@@ -301,12 +323,18 @@ public class UserServiceTest {
   void updateFailsByUserNotFound() {
     UserPrincipal userPrincipal = new UserPrincipal(this.user);
     UserUpdateDTO userUpdateDTO = new UserUpdateDTO("Updated name", "123456", "Anything");
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "file",
+      "file.txt",
+      "text/plain",
+      "Mock test file".getBytes()
+    );
 
     when(this.authService.getAuthentication()).thenReturn(this.authentication);
     when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
     when(this.userRepository.findById("01")).thenReturn(Optional.empty());
 
-    Exception thrown = catchException(() -> this.userService.update("01", userUpdateDTO));
+    Exception thrown = catchException(() -> this.userService.update("01", userUpdateDTO, mockFile));
 
     assertThat(thrown)
       .isExactlyInstanceOf(RecordNotFoundException.class)
@@ -316,6 +344,7 @@ public class UserServiceTest {
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.userRepository, times(1)).findById("01");
     verify(this.passwordEncoder, never()).encode(anyString());
+    verify(this.uploadService, never()).upload(any(UploadDTO.class), any(MockMultipartFile.class));
     verify(this.userRepository, never()).save(any(User.class));
   }
 
