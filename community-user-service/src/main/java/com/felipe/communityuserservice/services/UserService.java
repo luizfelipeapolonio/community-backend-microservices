@@ -1,5 +1,7 @@
 package com.felipe.communityuserservice.services;
 
+import com.felipe.communityuserservice.dtos.UploadDTO;
+import com.felipe.communityuserservice.dtos.UploadResponseDTO;
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.dtos.UserUpdateDTO;
@@ -18,6 +20,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,19 +34,22 @@ public class UserService {
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
   private final AuthService authService;
+  private final UploadService uploadService;
 
   public UserService(
     UserRepository userRepository,
     PasswordEncoder passwordEncoder,
     AuthenticationManager authenticationManager,
     JwtService jwtService,
-    AuthService authService
+    AuthService authService,
+    UploadService uploadService
   ) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
     this.jwtService = jwtService;
     this.authService = authService;
+    this.uploadService = uploadService;
   }
 
   public User register(@Valid UserRegisterDTO userRegisterDTO) {
@@ -93,7 +99,7 @@ public class UserService {
       .orElseThrow(() -> new RecordNotFoundException("Usuário de id '" + userId + "' não encontrado"));
   }
 
-  public User update(String userId, @Valid UserUpdateDTO userUpdateDTO) {
+  public User update(String userId, @Valid UserUpdateDTO userUpdateDTO, MultipartFile image) {
     Authentication authentication = this.authService.getAuthentication();
     UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
     String authenticatedUserId = userPrincipal.getUser().getId();
@@ -112,6 +118,11 @@ public class UserService {
         }
         if(userUpdateDTO.bio() != null) {
           foundUser.setBio(userUpdateDTO.bio());
+        }
+        if(image != null && !image.isEmpty()) {
+          UploadDTO uploadDTO = new UploadDTO("user", foundUser.getId());
+          UploadResponseDTO uploadedImage = this.uploadService.upload(uploadDTO, image);
+          foundUser.setProfileImage(uploadedImage.id());
         }
         return this.userRepository.save(foundUser);
       })
