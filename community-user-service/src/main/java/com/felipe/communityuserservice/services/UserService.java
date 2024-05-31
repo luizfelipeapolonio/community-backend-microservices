@@ -122,7 +122,7 @@ public class UserService {
         if(image != null && !image.isEmpty()) {
           UploadDTO uploadDTO = new UploadDTO("user", foundUser.getId());
           UploadResponseDTO uploadedImage = this.uploadService.upload(uploadDTO, image);
-          foundUser.setProfileImage(uploadedImage.id());
+          foundUser.setProfileImage(uploadedImage.id() + "#" + uploadedImage.path());
         }
         return this.userRepository.save(foundUser);
       })
