@@ -13,6 +13,13 @@ spring:
             - PrefixPath=/api
             - AuthenticationFilter
 
+        - id: community-upload-service
+          uri: lb://COMMUNITY-UPLOAD-SERVICE
+          predicates:
+            - Path=/images/**
+          filters:
+            - RewritePath=/images, /
+
   output:
     ansi:
       enabled: ALWAYS
