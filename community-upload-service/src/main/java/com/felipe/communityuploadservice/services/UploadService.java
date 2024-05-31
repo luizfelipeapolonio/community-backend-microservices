@@ -34,7 +34,7 @@ public class UploadService {
     }
 
     String imageName = this.generateImageName(image);
-    String imagePath = Paths.get(uploadDTO.target(), imageName).toString();
+    String imagePath = uploadDTO.target() + "/" + imageName;
 
     Image newImage = new Image();
     newImage.setName(imageName);
