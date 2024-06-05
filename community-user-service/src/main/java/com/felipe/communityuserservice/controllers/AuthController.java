@@ -4,6 +4,7 @@ import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserLoginResponseDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.dtos.UserResponseDTO;
+import com.felipe.communityuserservice.dtos.mappers.UserMapper;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.services.UserService;
 import com.felipe.communityuserservice.utils.response.CustomResponseBody;
@@ -25,9 +26,11 @@ import java.util.Map;
 public class AuthController {
 
   private final UserService userService;
+  private final UserMapper userMapper;
 
-  public AuthController(UserService userService) {
+  public AuthController(UserService userService, UserMapper userMapper) {
     this.userService = userService;
+    this.userMapper = userMapper;
   }
 
   @PostMapping("/register")
@@ -48,7 +51,7 @@ public class AuthController {
   @ResponseStatus(HttpStatus.OK)
   public CustomResponseBody<UserLoginResponseDTO> login(@RequestBody @Valid UserLoginDTO userLoginDTO) {
     Map<String, Object> loginMap = this.userService.login(userLoginDTO);
-    UserResponseDTO userResponseDTO = new UserResponseDTO((User) loginMap.get("user"));
+    UserResponseDTO userResponseDTO = this.userMapper.toDTO((User) loginMap.get("user"));
     UserLoginResponseDTO loginResponseDTO = new UserLoginResponseDTO(userResponseDTO, loginMap.get("token").toString());
 
     CustomResponseBody<UserLoginResponseDTO> response = new CustomResponseBody<>();
