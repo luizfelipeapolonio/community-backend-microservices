@@ -5,6 +5,7 @@ import com.felipe.communityuserservice.dtos.UserLoginDTO;
 import com.felipe.communityuserservice.dtos.UserLoginResponseDTO;
 import com.felipe.communityuserservice.dtos.UserRegisterDTO;
 import com.felipe.communityuserservice.dtos.UserResponseDTO;
+import com.felipe.communityuserservice.dtos.mappers.UserMapper;
 import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.models.User;
 import com.felipe.communityuserservice.services.UserService;
@@ -37,6 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.any;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
@@ -53,6 +56,9 @@ public class AuthControllerTest {
   @MockBean
   UserService userService;
 
+  @MockBean
+  UserMapper userMapper;
+
   private List<User> users;
 
   private final String BASE_URL = "/api/auth";
@@ -66,6 +72,8 @@ public class AuthControllerTest {
     user1.setName("User 1");
     user1.setEmail("user1@email.com");
     user1.setPassword("123456");
+    user1.setBio("Something meaningful");
+    user1.setProfileImage("imageId#path/image.jpg");
     user1.setCreatedAt(mockDateTime);
     user1.setUpdatedAt(mockDateTime);
 
@@ -134,6 +142,7 @@ public class AuthControllerTest {
 
     UserLoginResponseDTO loginResponseDTO = new UserLoginResponseDTO(userResponseDTO, login.get("token").toString());
 
+    when(this.userMapper.toDTO(user)).thenReturn(userResponseDTO);
     when(this.userService.login(userLoginDTO)).thenReturn(login);
 
     this.mockMvc.perform(post(BASE_URL + "/login")
@@ -146,10 +155,13 @@ public class AuthControllerTest {
       .andExpect(jsonPath("$.data.userInfo.id").value(loginResponseDTO.userInfo().id()))
       .andExpect(jsonPath("$.data.userInfo.name").value(loginResponseDTO.userInfo().name()))
       .andExpect(jsonPath("$.data.userInfo.email").value(loginResponseDTO.userInfo().email()))
+      .andExpect(jsonPath("$.data.userInfo.bio").value(loginResponseDTO.userInfo().bio()))
+      .andExpect(jsonPath("$.data.userInfo.profileImage").value(loginResponseDTO.userInfo().profileImage()))
       .andExpect(jsonPath("$.data.userInfo.createdAt").value(loginResponseDTO.userInfo().createdAt().toString()))
       .andExpect(jsonPath("$.data.userInfo.updatedAt").value(loginResponseDTO.userInfo().updatedAt().toString()))
       .andExpect(jsonPath("$.data.token").value(loginResponseDTO.token()));
 
+    verify(this.userMapper, times(1)).toDTO(user);
     verify(this.userService, times(1)).login(userLoginDTO);
   }
 
@@ -170,6 +182,7 @@ public class AuthControllerTest {
       .andExpect(jsonPath("$.message").value("Usuário ou senha inválidos"))
       .andExpect(jsonPath("$.data").doesNotExist());
 
+    verify(this.userMapper, never()).toDTO(any(User.class));
     verify(this.userService, times(1)).login(userLoginDTO);
   }
 

@@ -276,7 +276,7 @@ public class UserServiceTest {
     assertThat(updatedUser.getName()).isEqualTo(userUpdateDTO.name());
     assertThat(updatedUser.getPassword()).isEqualTo("Encoded password");
     assertThat(updatedUser.getBio()).isEqualTo(userUpdateDTO.bio());
-    assertThat(updatedUser.getProfileImage()).isEqualTo(uploadResponseDTO.id());
+    assertThat(updatedUser.getProfileImage()).isEqualTo(uploadResponseDTO.id() + "#" + uploadResponseDTO.path());
     assertThat(updatedUser.getCreatedAt()).isEqualTo(user.getCreatedAt());
     assertThat(updatedUser.getUpdatedAt()).isEqualTo(user.getUpdatedAt());
     assertThat(user).isEqualTo(updatedUser);
