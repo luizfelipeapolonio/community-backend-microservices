@@ -9,10 +9,19 @@ public record UserResponseDTO(
   String name,
   String email,
   String bio,
+  String profileImage,
   LocalDateTime createdAt,
   LocalDateTime updatedAt
 ) {
   public UserResponseDTO(User user) {
-    this(user.getId(), user.getName(), user.getEmail(), user.getBio(), user.getCreatedAt(), user.getUpdatedAt());
+    this(
+      user.getId(),
+      user.getName(),
+      user.getEmail(),
+      user.getBio(),
+      user.getProfileImage(),
+      user.getCreatedAt(),
+      user.getUpdatedAt()
+    );
   }
 }
