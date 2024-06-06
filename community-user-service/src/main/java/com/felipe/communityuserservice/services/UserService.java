@@ -120,8 +120,12 @@ public class UserService {
           foundUser.setBio(userUpdateDTO.bio());
         }
         if(image != null && !image.isEmpty()) {
+          if(foundUser.getProfileImage() != null) {
+            this.uploadService.deleteImage(foundUser.getProfileImage());
+            foundUser.setProfileImage(null);
+          }
           UploadDTO uploadDTO = new UploadDTO("user", foundUser.getId());
-          UploadResponseDTO uploadedImage = this.uploadService.upload(uploadDTO, image);
+          UploadResponseDTO uploadedImage = this.uploadService.uploadImage(uploadDTO, image);
           foundUser.setProfileImage(uploadedImage.id() + "#" + uploadedImage.path());
         }
         return this.userRepository.save(foundUser);
@@ -134,6 +138,7 @@ public class UserService {
     UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
     User authenticatedUser = userPrincipal.getUser();
     this.userRepository.deleteById(authenticatedUser.getId());
+    this.uploadService.deleteImage(authenticatedUser.getProfileImage());
     return authenticatedUser;
   }
 }
