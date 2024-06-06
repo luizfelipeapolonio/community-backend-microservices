@@ -1,8 +1,10 @@
 package com.felipe.communityuploadservice.services;
 
 import com.felipe.communityuploadservice.dtos.UploadDTO;
+import com.felipe.communityuploadservice.exceptions.DeleteFailureException;
 import com.felipe.communityuploadservice.exceptions.ImageAlreadyExistsException;
 import com.felipe.communityuploadservice.exceptions.InvalidFileTypeException;
+import com.felipe.communityuploadservice.exceptions.RecordNotFoundException;
 import com.felipe.communityuploadservice.exceptions.UploadFailureException;
 import com.felipe.communityuploadservice.models.Image;
 import com.felipe.communityuploadservice.repositories.UploadRepository;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,6 +60,29 @@ public class UploadService {
         throw new ImageAlreadyExistsException("Imagem '" + newImage.getName() + "' já existe");
       }
       throw new UploadFailureException("Ocorreu um erro! Não foi possível concluir o upload", e);
+    }
+  }
+
+  public Image delete(String imageId) {
+    Image imageToDelete = this.uploadRepository.findById(imageId)
+      .orElseThrow(() -> new RecordNotFoundException("Imagem de id '" + imageId + "' não encontrada"));
+
+    try {
+      Path imageToDeletePath = this.rootUploadPath.resolve(imageToDelete.getPath());
+      boolean isDeleted = Files.deleteIfExists(imageToDeletePath);
+
+      if(!isDeleted) {
+        throw new FileNotFoundException("Não foi possível excluir! Imagem no caminho '" + imageToDeletePath + "' não encontrada");
+      }
+
+      this.uploadRepository.deleteById(imageToDelete.getId());
+      return imageToDelete;
+    } catch(IOException exception) {
+      throw new DeleteFailureException(
+        "Não foi possível excluir a imagem de id '" + imageToDelete.getId() +
+        "' no caminho '" + imageToDelete.getPath() + "'",
+        exception
+      );
     }
   }
 

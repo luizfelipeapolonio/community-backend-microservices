@@ -7,7 +7,9 @@ import com.felipe.communityuploadservice.models.Image;
 import com.felipe.communityuploadservice.services.UploadService;
 import com.felipe.communityuploadservice.system.config.StorageProperties;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -38,6 +40,12 @@ public class UploadController {
     } catch(JsonProcessingException e) {
       throw new RuntimeException(e.getMessage());
     }
+  }
+
+  @DeleteMapping("/{imageId}")
+  @ResponseStatus(HttpStatus.OK)
+  public Image delete(@PathVariable String imageId) {
+    return this.uploadService.delete(imageId);
   }
 
   @GetMapping("/properties")
