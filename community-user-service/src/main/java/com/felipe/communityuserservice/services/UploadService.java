@@ -24,8 +24,15 @@ public class UploadService {
       String jsonUploadDTO = this.objectMapper.writeValueAsString(uploadDTO);
       return this.uploadClient.uploadImage(jsonUploadDTO, image);
     } catch(JsonProcessingException e) {
+      // TODO: trocar por uma exceção personalizada
       throw new RuntimeException("Não foi possível converter para JSON");
     }
+  }
+
+  public void delete(String profileImage) {
+    if(profileImage == null) return;
+    String imageId = profileImage.split("#")[0];
+    this.uploadClient.deleteImage(imageId);
   }
 
   public <T> T convertJsonStringToObject(String jsonString, Class<T> targetClass) {
