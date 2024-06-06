@@ -80,6 +80,7 @@ public class UserServiceTest {
     user.setName("User 1");
     user.setEmail("user1@email.com");
     user.setPassword("123456");
+    user.setProfileImage("imageId#path/image.jpg");
     user.setCreatedAt(mockDateTime);
     user.setUpdatedAt(mockDateTime);
 
@@ -267,7 +268,7 @@ public class UserServiceTest {
     when(this.authentication.getPrincipal()).thenReturn(userPrincipal);
     when(this.passwordEncoder.encode(userUpdateDTO.password())).thenReturn("Encoded password");
     when(this.userRepository.findById("01")).thenReturn(Optional.of(user));
-    when(this.uploadService.upload(uploadDTO, mockFile)).thenReturn(uploadResponseDTO);
+    when(this.uploadService.uploadImage(uploadDTO, mockFile)).thenReturn(uploadResponseDTO);
     when(this.userRepository.save(user)).thenReturn(user);
 
     User updatedUser = this.userService.update("01", userUpdateDTO, mockFile);
@@ -285,7 +286,8 @@ public class UserServiceTest {
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.passwordEncoder, times(1)).encode(userUpdateDTO.password());
     verify(this.userRepository, times(1)).findById("01");
-    verify(this.uploadService, times(1)).upload(uploadDTO, mockFile);
+    verify(this.uploadService, times(1)).deleteImage("imageId#path/image.jpg");
+    verify(this.uploadService, times(1)).uploadImage(uploadDTO, mockFile);
     verify(this.userRepository, times(1)).save(user);
   }
 
@@ -313,7 +315,7 @@ public class UserServiceTest {
     verify(this.authService, times(1)).getAuthentication();
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.userRepository, never()).findById(anyString());
-    verify(this.uploadService, never()).upload(any(UploadDTO.class), any(MockMultipartFile.class));
+    verify(this.uploadService, never()).uploadImage(any(UploadDTO.class), any(MockMultipartFile.class));
     verify(this.passwordEncoder, never()).encode(anyString());
     verify(this.userRepository, never()).save(any(User.class));
   }
@@ -344,7 +346,7 @@ public class UserServiceTest {
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.userRepository, times(1)).findById("01");
     verify(this.passwordEncoder, never()).encode(anyString());
-    verify(this.uploadService, never()).upload(any(UploadDTO.class), any(MockMultipartFile.class));
+    verify(this.uploadService, never()).uploadImage(any(UploadDTO.class), any(MockMultipartFile.class));
     verify(this.userRepository, never()).save(any(User.class));
   }
 
@@ -370,5 +372,6 @@ public class UserServiceTest {
     verify(this.authService, times(1)).getAuthentication();
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.userRepository, times(1)).deleteById(user.getId());
+    verify(this.uploadService, times(1)).deleteImage(user.getProfileImage());
   }
 }
