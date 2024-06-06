@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.felipe.communityuserservice.clients.UploadClient;
 import com.felipe.communityuserservice.dtos.UploadDTO;
 import com.felipe.communityuserservice.dtos.UploadResponseDTO;
+import com.felipe.communityuserservice.exceptions.UnprocessableJsonException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,17 +20,16 @@ public class UploadService {
     this.objectMapper = objectMapper;
   }
 
-  public UploadResponseDTO upload(UploadDTO uploadDTO, MultipartFile image) {
+  public UploadResponseDTO uploadImage(UploadDTO uploadDTO, MultipartFile image) {
     try {
       String jsonUploadDTO = this.objectMapper.writeValueAsString(uploadDTO);
       return this.uploadClient.uploadImage(jsonUploadDTO, image);
     } catch(JsonProcessingException e) {
-      // TODO: trocar por uma exceção personalizada
-      throw new RuntimeException("Não foi possível converter para JSON");
+      throw new UnprocessableJsonException("Não foi possível converter o objeto de upload para JSON", e);
     }
   }
 
-  public void delete(String profileImage) {
+  public void deleteImage(String profileImage) {
     if(profileImage == null) return;
     String imageId = profileImage.split("#")[0];
     this.uploadClient.deleteImage(imageId);
@@ -39,8 +39,7 @@ public class UploadService {
     try {
       return this.objectMapper.readValue(jsonString, targetClass);
     } catch(JsonProcessingException e) {
-      // TODO: criar uma exceção personalizada
-      throw new RuntimeException("Não foi possível processar os dados da requisição");
+      throw new UnprocessableJsonException("Não foi possível converter JSON string em objeto", e);
     }
   }
 }
