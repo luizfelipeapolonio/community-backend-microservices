@@ -8,6 +8,7 @@ import com.felipe.communityuserservice.exceptions.UserAlreadyExistsException;
 import com.felipe.communityuserservice.utils.response.CustomResponseBody;
 import com.felipe.communityuserservice.utils.response.CustomValidationErrors;
 import com.felipe.communityuserservice.utils.response.ResponseConditionStatus;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -84,6 +85,31 @@ public class ExceptionControllerAdvice {
     response.setStatus(ResponseConditionStatus.ERROR);
     response.setCode(HttpStatus.UNPROCESSABLE_ENTITY);
     response.setMessage("Erros de validação");
+    response.setData(errors);
+    return response;
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public CustomResponseBody<List<CustomValidationErrors>> handleConstraintViolationException(ConstraintViolationException e) {
+    List<CustomValidationErrors> errors = e.getConstraintViolations()
+      .stream()
+      .map(constraintViolation -> {
+        String field = constraintViolation.getPropertyPath().toString().split("\\.")[2];
+        return new CustomValidationErrors(
+          field,
+          field.equals("password") ? "" : constraintViolation.getInvalidValue(),
+          constraintViolation.getMessage()
+        );
+      })
+      .toList();
+
+    System.out.println();
+
+    CustomResponseBody<List<CustomValidationErrors>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.BAD_REQUEST);
+    response.setMessage("Erro ao validar parâmetros");
     response.setData(errors);
     return response;
   }
