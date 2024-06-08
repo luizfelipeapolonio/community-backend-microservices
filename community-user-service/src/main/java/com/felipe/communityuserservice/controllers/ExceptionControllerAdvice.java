@@ -104,8 +104,6 @@ public class ExceptionControllerAdvice {
       })
       .toList();
 
-    System.out.println();
-
     CustomResponseBody<List<CustomValidationErrors>> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.ERROR);
     response.setCode(HttpStatus.BAD_REQUEST);
