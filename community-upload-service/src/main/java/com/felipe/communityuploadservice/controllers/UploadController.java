@@ -3,6 +3,7 @@ package com.felipe.communityuploadservice.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.felipe.communityuploadservice.dtos.UploadDTO;
+import com.felipe.communityuploadservice.exceptions.UnprocessableJsonException;
 import com.felipe.communityuploadservice.models.Image;
 import com.felipe.communityuploadservice.services.UploadService;
 import com.felipe.communityuploadservice.system.config.StorageProperties;
@@ -33,12 +34,12 @@ public class UploadController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public Image save( @RequestPart("data") String jsonUploadDTO, @RequestPart("image") MultipartFile image) {
+  public Image save(@RequestPart("data") String jsonUploadDTO, @RequestPart("image") MultipartFile image) {
     try {
       UploadDTO uploadDTO = this.objectMapper.readValue(jsonUploadDTO, UploadDTO.class);
       return this.uploadService.save(uploadDTO, image);
     } catch(JsonProcessingException e) {
-      throw new RuntimeException(e.getMessage());
+      throw new UnprocessableJsonException("Não foi possível converter JSON string em objeto", e);
     }
   }
 

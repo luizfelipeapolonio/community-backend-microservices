@@ -4,6 +4,7 @@ import com.felipe.communityuploadservice.exceptions.DeleteFailureException;
 import com.felipe.communityuploadservice.exceptions.ImageAlreadyExistsException;
 import com.felipe.communityuploadservice.exceptions.InvalidFileTypeException;
 import com.felipe.communityuploadservice.exceptions.RecordNotFoundException;
+import com.felipe.communityuploadservice.exceptions.UnprocessableJsonException;
 import com.felipe.communityuploadservice.exceptions.UploadFailureException;
 import com.felipe.communityuploadservice.utils.response.CustomResponseBody;
 import com.felipe.communityuploadservice.utils.response.ResponseConditionStatus;
@@ -67,6 +68,17 @@ public class ExceptionControllerAdvice {
     CustomResponseBody<Void> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.ERROR);
     response.setCode(HttpStatus.INTERNAL_SERVER_ERROR);
+    response.setMessage(e.getMessage());
+    response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(UnprocessableJsonException.class)
+  @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+  public CustomResponseBody<Void> handleUnprocessableJsonException(UnprocessableJsonException e) {
+    CustomResponseBody<Void> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.UNPROCESSABLE_ENTITY);
     response.setMessage(e.getMessage());
     response.setData(null);
     return response;
