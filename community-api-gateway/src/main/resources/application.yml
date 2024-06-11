@@ -20,6 +20,13 @@ spring:
           filters:
             - RewritePath=/images, /
 
+        - id: community-post-service
+          uri: lb://COMMUNITY-POST-SERVICE
+          predicates:
+            - Path=/posts/**
+          filters:
+            - PrefixPath=/api
+            - AuthenticationFilter
   output:
     ansi:
       enabled: ALWAYS
