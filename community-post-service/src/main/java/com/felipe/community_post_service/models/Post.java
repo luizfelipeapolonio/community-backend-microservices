@@ -3,8 +3,6 @@ package com.felipe.community_post_service.models;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
@@ -15,26 +13,26 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Entity
 @Table(name = "post")
 public class Post {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
   private String id;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 80)
   private String title;
 
-  @Column(nullable = false)
+  @Column(nullable = false, columnDefinition = "TEXT")
   private String content;
 
   @Column(nullable = false)
   private String tags;
 
   @Column(nullable = false)
-  private String userId;
+  private String ownerId;
 
   @Column(nullable = false)
   private String postImage;
@@ -81,20 +79,22 @@ public class Post {
     this.content = content;
   }
 
-  public String getTags() {
-    return this.tags;
+  public String[] getTags() {
+    return this.tags.split(" ");
   }
 
-  public void setTags(String tags) {
-    this.tags = tags;
+  public void setTags(String[] tags) {
+    StringBuilder stringTags = new StringBuilder();
+    Stream.of(tags).forEach(tag -> stringTags.append(tag).append(" "));
+    this.tags = stringTags.toString().trim();
   }
 
-  public String getUserId() {
-    return this.userId;
+  public String getOwnerId() {
+    return this.ownerId;
   }
 
-  public void setUserId(String userId) {
-    this.userId = userId;
+  public void setOwnerId(String ownerId) {
+    this.ownerId = ownerId;
   }
 
   public String getPostImage() {
