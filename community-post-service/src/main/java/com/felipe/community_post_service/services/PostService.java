@@ -8,6 +8,8 @@ import com.felipe.community_post_service.repositories.PostRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.UUID;
+
 @Service
 public class PostService {
 
@@ -20,15 +22,17 @@ public class PostService {
   }
 
   public Post create(String userId, PostCreateDTO postCreateDTO, MultipartFile image) {
+    String postId = UUID.randomUUID().toString();
+    UploadDTO uploadDTO = new UploadDTO("post", postId);
+    UploadResponseDTO uploadResponseDTO = this.uploadService.uploadImage(uploadDTO, image);
+
     Post newPost = new Post();
+    newPost.setId(postId);
     newPost.setTitle(postCreateDTO.title());
     newPost.setContent(postCreateDTO.content());
-    newPost.setTags(postCreateDTO.tags()[0]);
-    newPost.setUserId(userId);
-
-    UploadDTO uploadDTO = new UploadDTO("post", newPost.getId());
-    UploadResponseDTO uploadResponseDTO = this.uploadService.uploadImage(uploadDTO, image);
-    newPost.setPostImage(uploadResponseDTO.path());
+    newPost.setTags(postCreateDTO.tags());
+    newPost.setOwnerId(userId);
+    newPost.setPostImage(uploadResponseDTO.id() + "#" + uploadResponseDTO.path());
 
     return this.postRepository.save(newPost);
   }
