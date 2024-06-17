@@ -5,14 +5,17 @@ import com.felipe.community_post_service.dtos.UploadDTO;
 import com.felipe.community_post_service.dtos.UploadResponseDTO;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.PostRepository;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
+@Validated
 @Service
 public class PostService {
 
@@ -24,7 +27,7 @@ public class PostService {
     this.uploadService = uploadService;
   }
 
-  public Post create(String userId, PostCreateDTO postCreateDTO, MultipartFile image) {
+  public Post create(String userId, @Valid PostCreateDTO postCreateDTO, MultipartFile image) {
     String postId = UUID.randomUUID().toString();
     UploadDTO uploadDTO = new UploadDTO("post", postId);
     UploadResponseDTO uploadResponseDTO = this.uploadService.uploadImage(uploadDTO, image);
