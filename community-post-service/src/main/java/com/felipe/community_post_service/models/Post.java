@@ -38,11 +38,11 @@ public class Post {
   private String postImage;
 
   @CreationTimestamp
-  @Column(name = "createdAt", nullable = false)
+  @Column(name = "createdAt", columnDefinition = "TIMESTAMP(2)", nullable = false)
   private LocalDateTime createdAt;
 
   @UpdateTimestamp
-  @Column(name = "updatedAt", nullable = false)
+  @Column(name = "updatedAt", columnDefinition = "TIMESTAMP(2)", nullable = false)
   private LocalDateTime updatedAt;
 
   @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
