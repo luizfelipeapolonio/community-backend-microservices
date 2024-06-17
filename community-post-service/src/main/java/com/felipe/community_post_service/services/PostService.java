@@ -5,6 +5,9 @@ import com.felipe.community_post_service.dtos.UploadDTO;
 import com.felipe.community_post_service.dtos.UploadResponseDTO;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.PostRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,5 +38,10 @@ public class PostService {
     newPost.setPostImage(uploadResponseDTO.id() + "#" + uploadResponseDTO.path());
 
     return this.postRepository.save(newPost);
+  }
+
+  public Page<Post> getAllPosts(int pageNumber) {
+    Pageable pagination = PageRequest.of(pageNumber, 10);
+    return this.postRepository.findAll(pagination);
   }
 }
