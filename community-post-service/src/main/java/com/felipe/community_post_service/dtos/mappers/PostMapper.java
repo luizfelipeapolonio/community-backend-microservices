@@ -9,13 +9,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @Component
 public class PostMapper {
 
   private final DiscoveryClient discoveryClient;
   private final UploadClient uploadClient;
+  private ServiceInstance gatewayInstance;
+  private String uploadDirectory;
 
   public PostMapper(DiscoveryClient discoveryClient, UploadClient uploadClient) {
     this.discoveryClient = discoveryClient;
@@ -35,12 +36,26 @@ public class PostMapper {
     );
   }
 
+  private void getGatewayInstance() {
+    this.gatewayInstance = this.discoveryClient.getInstances("COMMUNITY-API-GATEWAY").get(0);
+  }
+
+  private void getUploadDirectory() {
+    this.uploadDirectory = this.uploadClient.getUploadProperties();
+  }
+
   private String generatePostImageUri(String postImagePath) {
-    List<ServiceInstance> services = this.discoveryClient.getInstances("COMMUNITY-API-GATEWAY");
-    URI gatewayUri = services.get(0).getUri();
-    String uploadDirectory = this.uploadClient.getUploadProperties();
+    // Check if a gateway service instance already exists
+    if(this.gatewayInstance == null) {
+      this.getGatewayInstance();
+    }
+    // Check if upload directory has already been set
+    if(this.uploadDirectory == null) {
+      this.getUploadDirectory();
+    }
+    URI gatewayUri = this.gatewayInstance.getUri();
     String imageLocation = postImagePath.split("#")[1];
-    String imagePath = "images/" + uploadDirectory + "/" + imageLocation;
+    String imagePath = "images/" + this.uploadDirectory + "/" + imageLocation;
     return UriComponentsBuilder.newInstance()
       .uri(gatewayUri)
       .path(imagePath)
