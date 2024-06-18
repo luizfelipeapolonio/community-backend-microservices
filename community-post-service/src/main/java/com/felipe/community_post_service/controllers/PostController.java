@@ -92,4 +92,29 @@ public class PostController {
     response.setData(postResponseDTO);
     return response;
   }
+
+  @GetMapping("/users/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<PostPageResponseDTO> getAllUserPosts(
+    @PathVariable String userId,
+    @RequestParam(defaultValue = "0") int page
+  ) {
+    Page<Post> allPosts = this.postService.getAllUserPosts(userId, page);
+    List<PostResponseDTO> postsResponseDTO = allPosts.getContent()
+      .stream()
+      .map(this.postMapper::toPostResponseDTO)
+      .toList();
+    PostPageResponseDTO postPageResponseDTO = new PostPageResponseDTO(
+      postsResponseDTO,
+      allPosts.getTotalElements(),
+      allPosts.getTotalPages()
+    );
+
+    CustomResponseBody<PostPageResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os posts do usuário de id: '" + userId + "'");
+    response.setData(postPageResponseDTO);
+    return response;
+  }
 }

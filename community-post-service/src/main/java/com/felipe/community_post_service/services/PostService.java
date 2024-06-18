@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @Validated
@@ -52,5 +53,10 @@ public class PostService {
   public Post getById(String postId) {
     return this.postRepository.findById(postId)
       .orElseThrow(() -> new RecordNotFoundException("Post de id: '" + postId + "' não encontrado"));
+  }
+
+  public Page<Post> getAllUserPosts(String userId, int pageNumber) {
+    Pageable pagination = PageRequest.of(pageNumber, 10);
+    return this.postRepository.findAllByOwnerId(userId, pagination);
   }
 }
