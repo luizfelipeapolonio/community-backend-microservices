@@ -147,4 +147,22 @@ public class PostServiceTest {
 
     verify(this.postRepository, times(1)).findById("01");
   }
+
+  @Test
+  @DisplayName("getAllUserPosts - Should successfully return a Page with all posts from a specific user")
+  void getAllUserPostsSuccess() {
+    List<Post> posts = this.mockData.getPosts();
+    Page<Post> allUserPostsPage = new PageImpl<>(posts);
+    Pageable pagination = PageRequest.of(0, 10);
+
+    when(this.postRepository.findAllByOwnerId("02", pagination)).thenReturn(allUserPostsPage);
+
+    Page<Post> allPosts = this.postService.getAllUserPosts("02", 0);
+
+    assertThat(allPosts.getTotalElements()).isEqualTo(posts.size());
+    assertThat(allPosts.getContent().stream().map(Post::getOwnerId).toList())
+      .containsExactlyInAnyOrderElementsOf(posts.stream().map(Post::getOwnerId).toList());
+
+    verify(this.postRepository, times(1)).findAllByOwnerId("02", pagination);
+  }
 }

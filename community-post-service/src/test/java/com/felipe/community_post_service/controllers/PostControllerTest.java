@@ -228,4 +228,50 @@ public class PostControllerTest {
     verify(this.postService, times(1)).getById("01");
     verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
   }
+
+  @Test
+  @DisplayName("getAllUserPosts - Should return a success response with Ok status code and a Page with all user posts")
+  void getAllUserPostsSuccess() throws Exception {
+    List<Post> posts = this.mockData.getPosts();
+    Page<Post> allUserPostsPage = new PageImpl<>(posts);
+    List<PostResponseDTO> postsResponseDTO = allUserPostsPage.getContent()
+      .stream()
+      .map(post -> new PostResponseDTO(
+        post.getId(),
+        post.getTitle(),
+        post.getContent(),
+        post.getOwnerId(),
+        post.getTags(),
+        "http://localhost:8080/images/uploads/post/image.jpg",
+        post.getCreatedAt(),
+        post.getUpdatedAt()
+      ))
+      .toList();
+    PostPageResponseDTO postPageResponseDTO = new PostPageResponseDTO(
+      postsResponseDTO,
+      allUserPostsPage.getTotalElements(),
+      allUserPostsPage.getTotalPages()
+    );
+
+    CustomResponseBody<PostPageResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os posts do usuário de id: '02'");
+    response.setData(postPageResponseDTO);
+
+    String jsonResponseBody = this.objectMapper.writeValueAsString(response);
+
+    when(this.postService.getAllUserPosts("02", 0)).thenReturn(allUserPostsPage);
+    when(this.postMapper.toPostResponseDTO(posts.get(0))).thenReturn(postsResponseDTO.get(0));
+    when(this.postMapper.toPostResponseDTO(posts.get(1))).thenReturn(postsResponseDTO.get(1));
+
+    this.mockMvc.perform(get(BASE_URL + "/users/02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(content().json(jsonResponseBody));
+
+    verify(this.postService, times(1)).getAllUserPosts("02", 0);
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
+  }
 }
