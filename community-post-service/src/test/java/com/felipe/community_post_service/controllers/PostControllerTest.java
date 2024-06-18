@@ -6,6 +6,7 @@ import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
 import com.felipe.community_post_service.dtos.mappers.PostMapper;
+import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.services.PostService;
 import com.felipe.community_post_service.services.UploadService;
@@ -41,6 +42,7 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
@@ -170,5 +172,60 @@ public class PostControllerTest {
     verify(this.postService, times(1)).getAllPosts(0);
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
+  }
+
+  @Test
+  @DisplayName("getById - Should return a success response with Ok status code and the found post")
+  void getByIdSuccess() throws Exception {
+    Post post = this.mockData.getPosts().get(0);
+    PostResponseDTO postResponseDTO = new PostResponseDTO(
+      post.getId(),
+      post.getTitle(),
+      post.getContent(),
+      post.getOwnerId(),
+      post.getTags(),
+      "http://localhost:8080/images/uploads/post/image.jpg",
+      post.getCreatedAt(),
+      post.getUpdatedAt()
+    );
+
+    when(this.postService.getById("01")).thenReturn(post);
+    when(this.postMapper.toPostResponseDTO(post)).thenReturn(postResponseDTO);
+
+    this.mockMvc.perform(get(BASE_URL + "/01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Post de id: '01' encontrado"))
+      .andExpect(jsonPath("$.data.id").value(postResponseDTO.id()))
+      .andExpect(jsonPath("$.data.title").value(postResponseDTO.title()))
+      .andExpect(jsonPath("$.data.content").value(postResponseDTO.content()))
+      .andExpect(jsonPath("$.data.ownerId").value(postResponseDTO.ownerId()))
+      .andExpect(jsonPath("$.data.tags[0]").value(postResponseDTO.tags()[0]))
+      .andExpect(jsonPath("$.data.tags[1]").value(postResponseDTO.tags()[1]))
+      .andExpect(jsonPath("$.data.createdAt").value(postResponseDTO.createdAt().toString()))
+      .andExpect(jsonPath("$.data.updatedAt").value(postResponseDTO.updatedAt().toString()));
+
+    verify(this.postService, times(1)).getById("01");
+    verify(this.postMapper, times(1)).toPostResponseDTO(post);
+  }
+
+  @Test
+  @DisplayName("getById - Should return an error response with not found status code")
+  void getByIdFailsByPostNotFound() throws Exception {
+    when(this.postService.getById("01"))
+      .thenThrow(new RecordNotFoundException("Post de id: '01' não encontrado"));
+
+    this.mockMvc.perform(get(BASE_URL + "/01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isNotFound())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
+      .andExpect(jsonPath("$.message").value("Post de id: '01' não encontrado"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.postService, times(1)).getById("01");
+    verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
   }
 }

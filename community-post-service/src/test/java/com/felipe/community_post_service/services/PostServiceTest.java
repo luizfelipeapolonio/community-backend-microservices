@@ -4,6 +4,7 @@ import com.felipe.community_post_service.GenerateMocks;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.UploadDTO;
 import com.felipe.community_post_service.dtos.UploadResponseDTO;
+import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.PostRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,8 +24,10 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.catchException;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -107,5 +110,41 @@ public class PostServiceTest {
     assertThat(allPostsPage.getContent()).isEqualTo(posts);
 
     verify(this.postRepository, times(1)).findAll(pagination);
+  }
+
+  @Test
+  @DisplayName("getById - Should successfully return a post given the post id")
+  void getByIdSuccess() {
+    Post post = this.mockData.getPosts().get(0);
+
+    when(this.postRepository.findById("01")).thenReturn(Optional.of(post));
+
+    Post foundPost = this.postService.getById("01");
+
+    assertThat(foundPost.getId()).isEqualTo(post.getId());
+    assertThat(foundPost.getTitle()).isEqualTo(post.getTitle());
+    assertThat(foundPost.getContent()).isEqualTo(post.getContent());
+    assertThat(foundPost.getOwnerId()).isEqualTo(post.getOwnerId());
+    assertThat(foundPost.getPostImage()).isEqualTo(post.getPostImage());
+    assertThat(foundPost.getCreatedAt()).isEqualTo(post.getCreatedAt());
+    assertThat(foundPost.getUpdatedAt()).isEqualTo(post.getUpdatedAt());
+    assertThat(foundPost.getComments().size()).isEqualTo(post.getComments().size());
+    assertThat(foundPost.getLikeDislike().size()).isEqualTo(post.getLikeDislike().size());
+
+    verify(this.postRepository, times(1)).findById("01");
+  }
+
+  @Test
+  @DisplayName("getById - Should throw a RecordNotFoundException if the post is not found")
+  void getByIdFailsByPostNotFound() {
+    when(this.postRepository.findById("01")).thenReturn(Optional.empty());
+
+    Exception thrown = catchException(() -> this.postService.getById("01"));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(RecordNotFoundException.class)
+      .hasMessage("Post de id: '01' não encontrado");
+
+    verify(this.postRepository, times(1)).findById("01");
   }
 }
