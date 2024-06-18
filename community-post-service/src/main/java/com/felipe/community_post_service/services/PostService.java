@@ -3,6 +3,7 @@ package com.felipe.community_post_service.services;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.UploadDTO;
 import com.felipe.community_post_service.dtos.UploadResponseDTO;
+import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.PostRepository;
 import jakarta.validation.Valid;
@@ -46,5 +47,10 @@ public class PostService {
   public Page<Post> getAllPosts(int pageNumber) {
     Pageable pagination = PageRequest.of(pageNumber, 10);
     return this.postRepository.findAll(pagination);
+  }
+
+  public Post getById(String postId) {
+    return this.postRepository.findById(postId)
+      .orElseThrow(() -> new RecordNotFoundException("Post de id: '" + postId + "' não encontrado"));
   }
 }

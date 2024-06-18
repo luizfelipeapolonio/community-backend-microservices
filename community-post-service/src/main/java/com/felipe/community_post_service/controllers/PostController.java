@@ -12,6 +12,7 @@ import com.felipe.community_post_service.util.response.ResponseConditionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -75,6 +76,20 @@ public class PostController {
     response.setCode(HttpStatus.OK);
     response.setMessage("Todos os posts");
     response.setData(postPageResponseDTO);
+    return response;
+  }
+
+  @GetMapping("/{postId}")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<PostResponseDTO> getById(@PathVariable String postId) {
+    Post foundPost = this.postService.getById(postId);
+    PostResponseDTO postResponseDTO = this.postMapper.toPostResponseDTO(foundPost);
+
+    CustomResponseBody<PostResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Post de id: '" + postId + "' encontrado");
+    response.setData(postResponseDTO);
     return response;
   }
 }
