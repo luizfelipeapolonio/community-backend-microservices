@@ -1,5 +1,6 @@
 package com.felipe.community_post_service.controllers;
 
+import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.util.response.CustomResponseBody;
 import com.felipe.community_post_service.util.response.CustomValidationErrors;
 import com.felipe.community_post_service.util.response.ResponseConditionStatus;
@@ -13,6 +14,17 @@ import java.util.List;
 
 @RestControllerAdvice
 public class ExceptionControllerAdvice {
+
+  @ExceptionHandler(RecordNotFoundException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public CustomResponseBody<Void> handleRecordNotFoundException(RecordNotFoundException e) {
+    CustomResponseBody<Void> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.NOT_FOUND);
+    response.setMessage(e.getMessage());
+    response.setData(null);
+    return response;
+  }
 
   @ExceptionHandler(ConstraintViolationException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
