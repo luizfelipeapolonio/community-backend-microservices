@@ -1,6 +1,8 @@
 package com.felipe.community_post_service.controllers;
 
+import com.felipe.community_post_service.exceptions.AccessDeniedException;
 import com.felipe.community_post_service.exceptions.RecordNotFoundException;
+import com.felipe.community_post_service.exceptions.UnprocessableJsonException;
 import com.felipe.community_post_service.util.response.CustomResponseBody;
 import com.felipe.community_post_service.util.response.CustomValidationErrors;
 import com.felipe.community_post_service.util.response.ResponseConditionStatus;
@@ -21,6 +23,28 @@ public class ExceptionControllerAdvice {
     CustomResponseBody<Void> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.ERROR);
     response.setCode(HttpStatus.NOT_FOUND);
+    response.setMessage(e.getMessage());
+    response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  public CustomResponseBody<Void> handleAccessDeniedException(AccessDeniedException e) {
+    CustomResponseBody<Void> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.FORBIDDEN);
+    response.setMessage(e.getMessage());
+    response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(UnprocessableJsonException.class)
+  @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+  public CustomResponseBody<Void> handleUnprocessableJsonException(UnprocessableJsonException e) {
+    CustomResponseBody<Void> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.UNPROCESSABLE_ENTITY);
     response.setMessage(e.getMessage());
     response.setData(null);
     return response;
