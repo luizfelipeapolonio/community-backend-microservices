@@ -2,8 +2,10 @@ package com.felipe.community_post_service.services;
 
 import com.felipe.community_post_service.GenerateMocks;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
+import com.felipe.community_post_service.dtos.PostUpdateDTO;
 import com.felipe.community_post_service.dtos.UploadDTO;
 import com.felipe.community_post_service.dtos.UploadResponseDTO;
+import com.felipe.community_post_service.exceptions.AccessDeniedException;
 import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.PostRepository;
@@ -33,6 +35,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
@@ -164,5 +168,113 @@ public class PostServiceTest {
       .containsExactlyInAnyOrderElementsOf(posts.stream().map(Post::getOwnerId).toList());
 
     verify(this.postRepository, times(1)).findAllByOwnerId("02", pagination);
+  }
+
+  @Test
+  @DisplayName("update - Should successfully update a post and return it")
+  void updateSuccess() {
+    Post post = this.mockData.getPosts().get(0);
+    PostUpdateDTO postUpdateDTO = new PostUpdateDTO(
+      "Post 1 updated",
+      "A great post updated",
+      new String[]{"updated", "post"}
+    );
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "file",
+      "file.txt",
+      "text/plain",
+      "Mock test file".getBytes()
+    );
+    UploadDTO uploadDTO = new UploadDTO("post", post.getId());
+    UploadResponseDTO uploadResponseDTO = new UploadResponseDTO(
+      "102030",
+      "image.jpg",
+      "post/updated_image.jpg",
+      2000L,
+      "01",
+      null,
+      LocalDateTime.parse("2024-01-01T12:00:00.123456")
+    );
+
+    when(this.postRepository.findById("01")).thenReturn(Optional.of(post));
+    when(this.uploadService.uploadImage(eq(uploadDTO), any(MockMultipartFile.class))).thenReturn(uploadResponseDTO);
+    when(this.postRepository.save(post)).thenReturn(post);
+
+    Post updatedPost = this.postService.update("01", "02", postUpdateDTO, mockFile);
+
+    assertThat(updatedPost.getId()).isEqualTo(post.getId());
+    assertThat(updatedPost.getTitle()).isEqualTo(postUpdateDTO.title());
+    assertThat(updatedPost.getContent()).isEqualTo(postUpdateDTO.content());
+    assertThat(updatedPost.getTags()).isEqualTo(postUpdateDTO.tags());
+    assertThat(updatedPost.getOwnerId()).isEqualTo(post.getOwnerId());
+    assertThat(updatedPost.getPostImage()).isEqualTo(uploadResponseDTO.id() + "#" + uploadResponseDTO.path());
+    assertThat(updatedPost.getCreatedAt()).isEqualTo(post.getCreatedAt());
+    assertThat(updatedPost.getUpdatedAt()).isEqualTo(post.getUpdatedAt());
+    assertThat(updatedPost.getComments().size()).isEqualTo(post.getComments().size());
+    assertThat(updatedPost.getLikeDislike().size()).isEqualTo(post.getLikeDislike().size());
+
+    verify(this.postRepository, times(1)).findById("01");
+    verify(this.uploadService, times(1)).deleteImage("12345#post/image.jpg");
+    verify(this.uploadService, times(1)).uploadImage(uploadDTO, mockFile);
+    verify(this.postRepository, times(1)).save(post);
+  }
+
+  @Test
+  @DisplayName("update - Should throw an AccessDeniedException if the user id is different from the post owner id")
+  void updateFailsByUserIdIsDifferentFromOwnerId() {
+    Post post = this.mockData.getPosts().get(0);
+    PostUpdateDTO postUpdateDTO = new PostUpdateDTO(
+      "Post 1 updated",
+      "A great post updated",
+      new String[]{"updated", "post"}
+    );
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "file",
+      "file.txt",
+      "text/plain",
+      "Mock test file".getBytes()
+    );
+
+    when(this.postRepository.findById("01")).thenReturn(Optional.of(post));
+
+    Exception thrown = catchException(() -> this.postService.update("01", "01", postUpdateDTO, mockFile));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(AccessDeniedException.class)
+      .hasMessage("Você não tem permissão para alterar este recurso");
+
+    verify(this.postRepository, times(1)).findById("01");
+    verify(this.uploadService, never()).deleteImage(anyString());
+    verify(this.uploadService, never()).uploadImage(any(UploadDTO.class), any(MockMultipartFile.class));
+    verify(this.postRepository, never()).save(any(Post.class));
+  }
+
+  @Test
+  @DisplayName("update - Should throw a RecordNotFoundException if the post is not found")
+  void updateFailsByPostNotFound() {
+    PostUpdateDTO postUpdateDTO = new PostUpdateDTO(
+      "Post 1 updated",
+      "A great post updated",
+      new String[]{"updated", "post"}
+    );
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "file",
+      "file.txt",
+      "text/plain",
+      "Mock test file".getBytes()
+    );
+
+    when(this.postRepository.findById("01")).thenReturn(Optional.empty());
+
+    Exception thrown = catchException(() -> this.postService.update("01", "02", postUpdateDTO, mockFile));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(RecordNotFoundException.class)
+      .hasMessage("Post de id: '01' não encontrado");
+
+    verify(this.postRepository, times(1)).findById("01");
+    verify(this.uploadService, never()).deleteImage(anyString());
+    verify(this.uploadService, never()).uploadImage(any(UploadDTO.class), any(MockMultipartFile.class));
+    verify(this.postRepository, never()).save(any(Post.class));
   }
 }

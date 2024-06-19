@@ -5,7 +5,9 @@ import com.felipe.community_post_service.GenerateMocks;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
+import com.felipe.community_post_service.dtos.PostUpdateDTO;
 import com.felipe.community_post_service.dtos.mappers.PostMapper;
+import com.felipe.community_post_service.exceptions.AccessDeniedException;
 import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.services.PostService;
@@ -273,5 +275,132 @@ public class PostControllerTest {
     verify(this.postService, times(1)).getAllUserPosts("02", 0);
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
+  }
+
+  @Test
+  @DisplayName("update - Should return a success response with Ok status code and the updated post")
+  void updateSuccess() throws Exception {
+    Post post = this.mockData.getPosts().get(0);
+    PostUpdateDTO postUpdateDTO = new PostUpdateDTO(
+      "Updated post",
+      "Updated content",
+      new String[]{"updated", "post"}
+    );
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "image",
+      "image.jpg",
+      "text/plain",
+      "Pretending to be an image".getBytes()
+    );
+    PostResponseDTO postResponseDTO = new PostResponseDTO(
+      post.getId(),
+      postUpdateDTO.title(),
+      postUpdateDTO.content(),
+      post.getOwnerId(),
+      postUpdateDTO.tags(),
+      "http://localhost:8080/images/uploads/post/updated_image.jpg",
+      post.getCreatedAt(),
+      post.getUpdatedAt()
+    );
+    String jsonBody = this.objectMapper.writeValueAsString(postUpdateDTO);
+
+    when(this.uploadService.convertJsonStringToObject(jsonBody, PostUpdateDTO.class)).thenReturn(postUpdateDTO);
+    when(this.postService.update(eq("01"), eq("02"), eq(postUpdateDTO), any(MockMultipartFile.class))).thenReturn(post);
+    when(this.postMapper.toPostResponseDTO(post)).thenReturn(postResponseDTO);
+
+    this.mockMvc.perform(multipart(HttpMethod.PATCH, BASE_URL + "/01")
+      .file("data", jsonBody.getBytes())
+      .file("image", mockFile.getBytes())
+      .header("userId", "02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Post atualizado com sucesso"))
+      .andExpect(jsonPath("$.data.id").value(postResponseDTO.id()))
+      .andExpect(jsonPath("$.data.title").value(postResponseDTO.title()))
+      .andExpect(jsonPath("$.data.content").value(postResponseDTO.content()))
+      .andExpect(jsonPath("$.data.ownerId").value(postResponseDTO.ownerId()))
+      .andExpect(jsonPath("$.data.tags[0]").value(postResponseDTO.tags()[0]))
+      .andExpect(jsonPath("$.data.tags[1]").value(postResponseDTO.tags()[1]))
+      .andExpect(jsonPath("$.data.postImage").value(postResponseDTO.postImage()))
+      .andExpect(jsonPath("$.data.createdAt").value(postResponseDTO.createdAt().toString()))
+      .andExpect(jsonPath("$.data.updatedAt").value(postResponseDTO.updatedAt().toString()));
+
+    verify(this.uploadService, times(1)).convertJsonStringToObject(jsonBody, PostUpdateDTO.class);
+    verify(this.postService, times(1)).update(eq("01"), eq("02"), eq(postUpdateDTO), any(MockMultipartFile.class));
+    verify(this.postMapper, times(1)).toPostResponseDTO(post);
+  }
+
+  @Test
+  @DisplayName("update - Should return an error response with forbidden status code")
+  void updateFailsByAccessDenied() throws Exception {
+    PostUpdateDTO postUpdateDTO = new PostUpdateDTO(
+      "Updated post",
+      "Updated content",
+      new String[]{"updated", "post"}
+    );
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "image",
+      "image.jpg",
+      "text/plain",
+      "Pretending to be an image".getBytes()
+    );
+    String jsonBody = this.objectMapper.writeValueAsString(postUpdateDTO);
+
+    when(this.uploadService.convertJsonStringToObject(jsonBody, PostUpdateDTO.class)).thenReturn(postUpdateDTO);
+    when(this.postService.update(eq("01"), eq("01"), eq(postUpdateDTO), any(MockMultipartFile.class)))
+      .thenThrow(new AccessDeniedException("Você não tem permissão para alterar este recurso"));
+
+    this.mockMvc.perform(multipart(HttpMethod.PATCH, BASE_URL + "/01")
+      .file("data", jsonBody.getBytes())
+      .file("image", mockFile.getBytes())
+      .header("userId", "01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.FORBIDDEN.value()))
+      .andExpect(jsonPath("$.message").value("Você não tem permissão para alterar este recurso"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.uploadService, times(1)).convertJsonStringToObject(jsonBody, PostUpdateDTO.class);
+    verify(this.postService, times(1)).update(eq("01"), eq("01"), eq(postUpdateDTO), any(MockMultipartFile.class));
+    verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
+  }
+
+  @Test
+  @DisplayName("update - Should return an error response with not found status code")
+  void updateFailsByPostNotFound() throws Exception {
+    PostUpdateDTO postUpdateDTO = new PostUpdateDTO(
+      "Updated post",
+      "Updated content",
+      new String[]{"updated", "post"}
+    );
+    MockMultipartFile mockFile = new MockMultipartFile(
+      "image",
+      "image.jpg",
+      "text/plain",
+      "Pretending to be an image".getBytes()
+    );
+    String jsonBody = this.objectMapper.writeValueAsString(postUpdateDTO);
+
+    when(this.uploadService.convertJsonStringToObject(jsonBody, PostUpdateDTO.class)).thenReturn(postUpdateDTO);
+    when(this.postService.update(eq("01"), eq("01"), eq(postUpdateDTO), any(MockMultipartFile.class)))
+      .thenThrow(new RecordNotFoundException("Post de id: '01' não encontrado"));
+
+    this.mockMvc.perform(multipart(HttpMethod.PATCH, BASE_URL + "/01")
+        .file("data", jsonBody.getBytes())
+        .file("image", mockFile.getBytes())
+        .header("userId", "01")
+        .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isNotFound())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
+      .andExpect(jsonPath("$.message").value("Post de id: '01' não encontrado"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.uploadService, times(1)).convertJsonStringToObject(jsonBody, PostUpdateDTO.class);
+    verify(this.postService, times(1)).update(eq("01"), eq("01"), eq(postUpdateDTO), any(MockMultipartFile.class));
+    verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
   }
 }
