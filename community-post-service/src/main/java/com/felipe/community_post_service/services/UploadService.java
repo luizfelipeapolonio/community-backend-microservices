@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.felipe.community_post_service.clients.UploadClient;
 import com.felipe.community_post_service.dtos.UploadDTO;
 import com.felipe.community_post_service.dtos.UploadResponseDTO;
+import com.felipe.community_post_service.exceptions.UnprocessableJsonException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,16 +25,20 @@ public class UploadService {
       String jsonUploadDTO = this.objectMapper.writeValueAsString(uploadDTO);
       return this.uploadClient.uploadImage(jsonUploadDTO, image);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new UnprocessableJsonException("Não foi possível converter DTO para JSON", e);
     }
+  }
+
+  public void deleteImage(String postImagePath) {
+    String imageId = postImagePath.split("#")[0];
+    this.uploadClient.deleteImage(imageId);
   }
 
   public <T> T convertJsonStringToObject(String jsonString, Class<T> targetClass) {
     try {
       return this.objectMapper.readValue(jsonString, targetClass);
     } catch(JsonProcessingException e) {
-      // TODO: Criar exceção personalizada
-      throw new RuntimeException("Não foi possível converter JSON em objeto");
+      throw new UnprocessableJsonException("Não foi possível converter JSON em objeto", e);
     }
   }
 }
