@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.catchException;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -276,5 +277,66 @@ public class PostServiceTest {
     verify(this.uploadService, never()).deleteImage(anyString());
     verify(this.uploadService, never()).uploadImage(any(UploadDTO.class), any(MockMultipartFile.class));
     verify(this.postRepository, never()).save(any(Post.class));
+  }
+
+  @Test
+  @DisplayName("delete - Should successfully delete a post and return it")
+  void deleteSuccess() {
+    Post post = this.mockData.getPosts().get(0);
+
+    when(this.postRepository.findById("01")).thenReturn(Optional.of(post));
+    doNothing().when(this.postRepository).deleteById(post.getId());
+    doNothing().when(this.uploadService).deleteImage(post.getPostImage());
+
+    Post deletedPost = this.postService.delete("01", "02");
+
+    assertThat(deletedPost.getId()).isEqualTo(post.getId());
+    assertThat(deletedPost.getTitle()).isEqualTo(post.getTitle());
+    assertThat(deletedPost.getContent()).isEqualTo(post.getContent());
+    assertThat(deletedPost.getTags()).isEqualTo(post.getTags());
+    assertThat(deletedPost.getOwnerId()).isEqualTo(post.getOwnerId());
+    assertThat(deletedPost.getPostImage()).isEqualTo(post.getPostImage());
+    assertThat(deletedPost.getComments().size()).isEqualTo(post.getComments().size());
+    assertThat(deletedPost.getLikeDislike().size()).isEqualTo(post.getLikeDislike().size());
+    assertThat(deletedPost.getCreatedAt()).isEqualTo(post.getCreatedAt());
+    assertThat(deletedPost.getUpdatedAt()).isEqualTo(post.getUpdatedAt());
+
+    verify(this.postRepository, times(1)).findById("01");
+    verify(this.postRepository, times(1)).deleteById(post.getId());
+    verify(this.uploadService, times(1)).deleteImage(post.getPostImage());
+  }
+
+  @Test
+  @DisplayName("delete - Should throw a RecordNotFoundException if the post is not found")
+  void deleteFailsByPostNotFound() {
+    when(this.postRepository.findById("01")).thenReturn(Optional.empty());
+
+    Exception thrown = catchException(() -> this.postService.delete("01", "02"));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(RecordNotFoundException.class)
+      .hasMessage("Post de id: '01' não encontrado");
+
+    verify(this.postRepository, times(1)).findById("01");
+    verify(this.postRepository, never()).deleteById(anyString());
+    verify(this.uploadService, never()).deleteImage(anyString());
+  }
+
+  @Test
+  @DisplayName("delete - Should throw an AccessDeniedException if the user id is different from post owner id")
+  void deleteFailsByUserIdIsDifferentFromOwnerId() {
+    Post post = this.mockData.getPosts().get(0);
+
+    when(this.postRepository.findById("01")).thenReturn(Optional.of(post));
+
+    Exception thrown = catchException(() -> this.postService.delete("01", "01"));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(AccessDeniedException.class)
+      .hasMessage("Você não tem permissão para remover este recurso");
+
+    verify(this.postRepository, times(1)).findById("01");
+    verify(this.postRepository, never()).deleteById(anyString());
+    verify(this.uploadService, never()).deleteImage(anyString());
   }
 }

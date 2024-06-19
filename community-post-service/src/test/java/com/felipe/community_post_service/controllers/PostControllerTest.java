@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -401,6 +402,83 @@ public class PostControllerTest {
 
     verify(this.uploadService, times(1)).convertJsonStringToObject(jsonBody, PostUpdateDTO.class);
     verify(this.postService, times(1)).update(eq("01"), eq("01"), eq(postUpdateDTO), any(MockMultipartFile.class));
+    verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
+  }
+
+  @Test
+  @DisplayName("delete - Should return a success response with Ok status code and the deleted post")
+  void deleteSuccess() throws Exception {
+    Post post = this.mockData.getPosts().get(0);
+    PostResponseDTO postResponseDTO = new PostResponseDTO(
+      post.getId(),
+      post.getTitle(),
+      post.getContent(),
+      post.getOwnerId(),
+      post.getTags(),
+      "http://localhost:8080/images/uploads/post/image.jpg",
+      post.getCreatedAt(),
+      post.getUpdatedAt()
+    );
+
+    when(this.postService.delete("01", "02")).thenReturn(post);
+    when(this.postMapper.toPostResponseDTO(post)).thenReturn(postResponseDTO);
+
+    this.mockMvc.perform(delete(BASE_URL + "/01")
+        .header("userId", "02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Post de id: '01' excluído com sucesso"))
+      .andExpect(jsonPath("$.data.deletedPost.id").value(postResponseDTO.id()))
+      .andExpect(jsonPath("$.data.deletedPost.title").value(postResponseDTO.title()))
+      .andExpect(jsonPath("$.data.deletedPost.content").value(postResponseDTO.content()))
+      .andExpect(jsonPath("$.data.deletedPost.ownerId").value(postResponseDTO.ownerId()))
+      .andExpect(jsonPath("$.data.deletedPost.tags[0]").value(postResponseDTO.tags()[0]))
+      .andExpect(jsonPath("$.data.deletedPost.tags[1]").value(postResponseDTO.tags()[1]))
+      .andExpect(jsonPath("$.data.deletedPost.postImage").value(postResponseDTO.postImage()))
+      .andExpect(jsonPath("$.data.deletedPost.createdAt").value(postResponseDTO.createdAt().toString()))
+      .andExpect(jsonPath("$.data.deletedPost.updatedAt").value(postResponseDTO.updatedAt().toString()));
+
+    verify(this.postService, times(1)).delete("01", "02");
+    verify(this.postMapper, times(1)).toPostResponseDTO(post);
+  }
+
+  @Test
+  @DisplayName("delete - Should return an error response with forbidden status code")
+  void deleteFailsByAccessDenied() throws Exception {
+    when(this.postService.delete("01", "01"))
+      .thenThrow(new AccessDeniedException("Você não tem permissão para remover este recurso"));
+
+    this.mockMvc.perform(delete(BASE_URL + "/01")
+      .header("userId", "01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.FORBIDDEN.value()))
+      .andExpect(jsonPath("$.message").value("Você não tem permissão para remover este recurso"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.postService, times(1)).delete("01", "01");
+    verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
+  }
+
+  @Test
+  @DisplayName("delete - Should return an error response with not found status code")
+  void deleteFailsByPostNotFound() throws Exception {
+    when(this.postService.delete("01", "02"))
+      .thenThrow(new RecordNotFoundException("Post de id: '01' não encontrado"));
+
+    this.mockMvc.perform(delete(BASE_URL + "/01")
+      .header("userId", "02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isNotFound())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
+      .andExpect(jsonPath("$.message").value("Post de id: '01' não encontrado"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.postService, times(1)).delete("01", "02");
     verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
   }
 }
