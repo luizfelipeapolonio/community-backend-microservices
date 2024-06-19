@@ -93,4 +93,16 @@ public class PostService {
       })
       .orElseThrow(() -> new RecordNotFoundException("Post de id: '" + postId + "' não encontrado"));
   }
+
+  public Post delete(String postId, String userId) {
+    Post foundPost = this.getById(postId);
+
+    if(!foundPost.getOwnerId().equals(userId)) {
+      throw new AccessDeniedException("Você não tem permissão para remover este recurso");
+    }
+
+    this.postRepository.deleteById(foundPost.getId());
+    this.uploadService.deleteImage(foundPost.getPostImage());
+    return foundPost;
+  }
 }

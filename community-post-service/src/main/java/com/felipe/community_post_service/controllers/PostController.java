@@ -12,6 +12,7 @@ import com.felipe.community_post_service.util.response.CustomResponseBody;
 import com.felipe.community_post_service.util.response.ResponseConditionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +25,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -112,6 +115,26 @@ public class PostController {
     response.setCode(HttpStatus.OK);
     response.setMessage("Post atualizado com sucesso");
     response.setData(postResponseDTO);
+    return response;
+  }
+
+  @DeleteMapping("/{postId}")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<Map<String, PostResponseDTO>> delete(
+    @PathVariable String postId,
+    @RequestHeader("userId") String userId
+  ) {
+    Post deletedPost = this.postService.delete(postId, userId);
+    PostResponseDTO postResponseDTO = this.postMapper.toPostResponseDTO(deletedPost);
+
+    Map<String, PostResponseDTO> deletedPostMap = new HashMap<>(1);
+    deletedPostMap.put("deletedPost", postResponseDTO);
+
+    CustomResponseBody<Map<String, PostResponseDTO>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Post de id: '" + postId + "' excluído com sucesso");
+    response.setData(deletedPostMap);
     return response;
   }
 
