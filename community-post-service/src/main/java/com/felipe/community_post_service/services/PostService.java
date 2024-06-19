@@ -1,8 +1,10 @@
 package com.felipe.community_post_service.services;
 
 import com.felipe.community_post_service.dtos.PostCreateDTO;
+import com.felipe.community_post_service.dtos.PostUpdateDTO;
 import com.felipe.community_post_service.dtos.UploadDTO;
 import com.felipe.community_post_service.dtos.UploadResponseDTO;
+import com.felipe.community_post_service.exceptions.AccessDeniedException;
 import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.PostRepository;
@@ -14,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
 import java.util.UUID;
 
 @Validated
@@ -58,5 +59,38 @@ public class PostService {
   public Page<Post> getAllUserPosts(String userId, int pageNumber) {
     Pageable pagination = PageRequest.of(pageNumber, 10);
     return this.postRepository.findAllByOwnerId(userId, pagination);
+  }
+
+  public Post update(
+    String postId,
+    String userId,
+    @Valid PostUpdateDTO postUpdateDTO,
+    MultipartFile image
+  ) {
+    return this.postRepository.findById(postId)
+      .map(foundPost -> {
+        if(!foundPost.getOwnerId().equals(userId)) {
+          throw new AccessDeniedException("Você não tem permissão para alterar este recurso");
+        }
+        if(postUpdateDTO.title() != null) {
+          foundPost.setTitle(postUpdateDTO.title());
+        }
+        if(postUpdateDTO.content() != null) {
+          foundPost.setContent(postUpdateDTO.content());
+        }
+        if(postUpdateDTO.tags() != null) {
+          foundPost.setTags(postUpdateDTO.tags());
+        }
+        if(image != null && !image.isEmpty()) {
+          this.uploadService.deleteImage(foundPost.getPostImage());
+          foundPost.setPostImage(null);
+
+          UploadDTO uploadDTO = new UploadDTO("post", foundPost.getId());
+          UploadResponseDTO uploadResponseDTO = this.uploadService.uploadImage(uploadDTO, image);
+          foundPost.setPostImage(uploadResponseDTO.id() + "#" + uploadResponseDTO.path());
+        }
+        return this.postRepository.save(foundPost);
+      })
+      .orElseThrow(() -> new RecordNotFoundException("Post de id: '" + postId + "' não encontrado"));
   }
 }

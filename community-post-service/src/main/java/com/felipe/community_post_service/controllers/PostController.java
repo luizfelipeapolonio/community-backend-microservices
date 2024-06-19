@@ -3,6 +3,7 @@ package com.felipe.community_post_service.controllers;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
+import com.felipe.community_post_service.dtos.PostUpdateDTO;
 import com.felipe.community_post_service.dtos.mappers.PostMapper;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.services.PostService;
@@ -12,6 +13,7 @@ import com.felipe.community_post_service.util.response.ResponseConditionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -89,6 +91,26 @@ public class PostController {
     response.setStatus(ResponseConditionStatus.SUCCESS);
     response.setCode(HttpStatus.OK);
     response.setMessage("Post de id: '" + postId + "' encontrado");
+    response.setData(postResponseDTO);
+    return response;
+  }
+
+  @PatchMapping("/{postId}")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<PostResponseDTO> update(
+    @PathVariable String postId,
+    @RequestHeader("userId") String userId,
+    @RequestPart("data") String jsonUpdateDTO,
+    @RequestPart(name = "image", required = false) MultipartFile image
+  ) {
+    PostUpdateDTO postUpdateDTO = this.uploadService.convertJsonStringToObject(jsonUpdateDTO, PostUpdateDTO.class);
+    Post updatedPost = this.postService.update(postId, userId, postUpdateDTO, image);
+    PostResponseDTO postResponseDTO = this.postMapper.toPostResponseDTO(updatedPost);
+
+    CustomResponseBody<PostResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Post atualizado com sucesso");
     response.setData(postResponseDTO);
     return response;
   }
