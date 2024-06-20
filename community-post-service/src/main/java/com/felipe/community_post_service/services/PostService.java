@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @Validated
@@ -105,4 +106,14 @@ public class PostService {
     this.uploadService.deleteImage(foundPost.getPostImage());
     return foundPost;
   }
+
+  public List<Post> deleteAllFromUser(String userId) {
+    List<Post> allUserPosts = this.postRepository.findAllByOwnerId(userId);
+    allUserPosts.forEach(post -> {
+      this.postRepository.deleteById(post.getId());
+      this.uploadService.deleteImage(post.getPostImage());
+    });
+    return allUserPosts;
+  }
+
 }

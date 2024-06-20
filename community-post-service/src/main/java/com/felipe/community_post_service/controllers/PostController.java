@@ -84,6 +84,23 @@ public class PostController {
     return response;
   }
 
+  @DeleteMapping
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<Map<String, List<PostResponseDTO>>> deleteAllFromUser(@RequestHeader("userId") String userId) {
+    List<Post> deletedPosts = this.postService.deleteAllFromUser(userId);
+    List<PostResponseDTO> postResponseDTOs = deletedPosts.stream().map(this.postMapper::toPostResponseDTO).toList();
+
+    Map<String, List<PostResponseDTO>> deletedPostsMap = new HashMap<>(1);
+    deletedPostsMap.put("deletedPosts", postResponseDTOs);
+
+    CustomResponseBody<Map<String, List<PostResponseDTO>>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os posts do usuário de id: '" + userId + "' foram excluídos com sucesso");
+    response.setData(deletedPostsMap);
+    return response;
+  }
+
   @GetMapping("/{postId}")
   @ResponseStatus(HttpStatus.OK)
   public CustomResponseBody<PostResponseDTO> getById(@PathVariable String postId) {
