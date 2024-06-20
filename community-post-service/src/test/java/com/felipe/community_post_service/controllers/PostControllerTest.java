@@ -32,7 +32,9 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -480,5 +482,47 @@ public class PostControllerTest {
 
     verify(this.postService, times(1)).delete("01", "02");
     verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
+  }
+
+  @Test
+  @DisplayName("deleteAllFromUser - Should return a success response with Ok status code and all deleted posts")
+  void deleteAllFromUserSuccess() throws Exception {
+    List<Post> posts = this.mockData.getPosts();
+    List<PostResponseDTO> postResponseDTOs = posts.stream()
+      .map(post -> new PostResponseDTO(
+        post.getId(),
+        post.getTitle(),
+        post.getContent(),
+        post.getOwnerId(),
+        post.getTags(),
+        "http://localhost:8080/images/uploads/post/image.jpg",
+        post.getCreatedAt(),
+        post.getUpdatedAt()
+      ))
+      .toList();
+
+    Map<String, List<PostResponseDTO>> deletedPostsMap = new HashMap<>(1);
+    deletedPostsMap.put("deletedPosts", postResponseDTOs);
+
+    CustomResponseBody<Map<String, List<PostResponseDTO>>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os posts do usuário de id: '02' foram excluídos com sucesso");
+    response.setData(deletedPostsMap);
+
+    String jsonResponseBody = this.objectMapper.writeValueAsString(response);
+
+    when(this.postService.deleteAllFromUser("02")).thenReturn(posts);
+    when(this.postMapper.toPostResponseDTO(posts.get(0))).thenReturn(postResponseDTOs.get(0));
+    when(this.postMapper.toPostResponseDTO(posts.get(1))).thenReturn(postResponseDTOs.get(1));
+
+    this.mockMvc.perform(delete(BASE_URL).header("userId", "02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(content().json(jsonResponseBody));
+
+    verify(this.postService, times(1)).deleteAllFromUser("02");
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
   }
 }

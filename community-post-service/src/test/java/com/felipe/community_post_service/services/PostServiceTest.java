@@ -339,4 +339,27 @@ public class PostServiceTest {
     verify(this.postRepository, never()).deleteById(anyString());
     verify(this.uploadService, never()).deleteImage(anyString());
   }
+
+  @Test
+  @DisplayName("deleteAllFromUser - Should successfully delete all posts from a specific user")
+  void deleteAllFromUserSuccess() {
+    List<Post> posts = this.mockData.getPosts();
+
+    when(this.postRepository.findAllByOwnerId("02")).thenReturn(posts);
+    doNothing().when(this.postRepository).deleteById(posts.get(0).getId());
+    doNothing().when(this.postRepository).deleteById(posts.get(1).getId());
+    doNothing().when(this.uploadService).deleteImage(posts.get(0).getPostImage());
+    doNothing().when(this.uploadService).deleteImage(posts.get(1).getPostImage());
+
+    List<Post> deletedPosts = this.postService.deleteAllFromUser("02");
+
+    assertThat(deletedPosts.size()).isEqualTo(posts.size());
+    assertThat(deletedPosts).allSatisfy(post -> assertThat(post.getOwnerId()).isEqualTo("02"));
+
+    verify(this.postRepository, times(1)).findAllByOwnerId("02");
+    verify(this.postRepository, times(1)).deleteById(posts.get(0).getId());
+    verify(this.postRepository, times(1)).deleteById(posts.get(1).getId());
+    verify(this.uploadService, times(1)).deleteImage(posts.get(0).getPostImage());
+    verify(this.uploadService, times(1)).deleteImage(posts.get(1).getPostImage());
+  }
 }
