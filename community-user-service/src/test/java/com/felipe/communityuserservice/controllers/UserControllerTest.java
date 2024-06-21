@@ -289,4 +289,30 @@ public class UserControllerTest {
 
     verify(this.userService, times(1)).deleteAuthenticatedUserProfile();
   }
+
+  @Test
+  @DisplayName("getUserInfos - Should return a success response with Ok status code and a map with user infos")
+  void getUserInfosSuccess() throws Exception {
+    User user = this.user;
+    UserResponseDTO userResponseDTO = new UserResponseDTO(
+      user.getId(),
+      user.getName(),
+      user.getEmail(),
+      user.getBio(),
+      "http://localhost:8080/images/uploads/post/image.jpg",
+      user.getCreatedAt(),
+      user.getUpdatedAt()
+    );
+
+    when(this.userService.getProfile("01")).thenReturn(user);
+    when(this.userMapper.toDTO(user)).thenReturn(userResponseDTO);
+
+    this.mockMvc.perform(get(BASE_URL + "/infos/01").accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("username").value(userResponseDTO.name()))
+      .andExpect(jsonPath("profileImage").value(userResponseDTO.profileImage()));
+
+    verify(this.userService, times(1)).getProfile("01");
+    verify(this.userMapper, times(1)).toDTO(user);
+  }
 }
