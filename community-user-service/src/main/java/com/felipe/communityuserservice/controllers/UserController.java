@@ -99,4 +99,18 @@ public class UserController {
     response.setData(userResponseDTO);
     return response;
   }
+
+  // An endpoint for the other microservices to get some user information
+  // after authentication has been successful
+  @GetMapping("/infos/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  public Map<String, String> getUserInfos(@PathVariable String userId) {
+    User user = this.userService.getProfile(userId);
+    UserResponseDTO userResponseDTO = this.userMapper.toDTO(user);
+
+    Map<String, String> responseMap = new HashMap<>(2);
+    responseMap.put("username", userResponseDTO.name());
+    responseMap.put("profileImage", userResponseDTO.profileImage());
+    return responseMap;
+  }
 }
