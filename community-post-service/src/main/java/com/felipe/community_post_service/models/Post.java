@@ -45,8 +45,7 @@ public class Post {
   @Column(name = "updatedAt", columnDefinition = "TIMESTAMP(2)", nullable = false)
   private LocalDateTime updatedAt;
 
-  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-  @JoinColumn(name = "post_id", nullable = false)
+  @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Comment> comments = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
