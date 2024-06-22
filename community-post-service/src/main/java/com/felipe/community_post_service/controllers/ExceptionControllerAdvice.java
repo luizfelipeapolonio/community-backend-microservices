@@ -8,6 +8,7 @@ import com.felipe.community_post_service.util.response.CustomValidationErrors;
 import com.felipe.community_post_service.util.response.ResponseConditionStatus;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -47,6 +48,27 @@ public class ExceptionControllerAdvice {
     response.setCode(HttpStatus.UNPROCESSABLE_ENTITY);
     response.setMessage(e.getMessage());
     response.setData(null);
+    return response;
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+  public CustomResponseBody<List<CustomValidationErrors>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    List<CustomValidationErrors> errors = e.getBindingResult()
+      .getFieldErrors()
+      .stream()
+      .map(fieldError -> new CustomValidationErrors(
+        fieldError.getField(),
+        fieldError.getRejectedValue(),
+        fieldError.getDefaultMessage()
+      ))
+      .toList();
+
+    CustomResponseBody<List<CustomValidationErrors>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.ERROR);
+    response.setCode(HttpStatus.UNPROCESSABLE_ENTITY);
+    response.setMessage("Erros de validação");
+    response.setData(errors);
     return response;
   }
 
