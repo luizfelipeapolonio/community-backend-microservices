@@ -5,8 +5,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -23,16 +26,23 @@ public class Comment {
 
   @Column(nullable = false)
   private String userId;
-
-  @Column(nullable = false)
+  
   private String profileImage;
 
   @Column(nullable = false)
   private String content;
 
   @CreationTimestamp
-  @Column(name = "created_at", nullable = false)
+  @Column(name = "created_at", columnDefinition = "TIMESTAMP(2)", nullable = false)
   private LocalDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at", columnDefinition = "TIMESTAMP(2)", nullable = false)
+  private LocalDateTime updatedAt;
+
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "post_id", nullable = false)
+  private Post post;
 
   public Comment() {}
 
@@ -82,5 +92,21 @@ public class Comment {
 
   public void setCreatedAt(LocalDateTime createdAt) {
     this.createdAt = createdAt;
+  }
+
+  public LocalDateTime getUpdatedAt() {
+    return this.updatedAt;
+  }
+
+  public void setUpdatedAt(LocalDateTime updatedAt) {
+    this.updatedAt = updatedAt;
+  }
+
+  public Post getPost() {
+    return this.post;
+  }
+
+  public void setPost(Post post) {
+    this.post = post;
   }
 }
