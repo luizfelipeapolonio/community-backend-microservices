@@ -26,7 +26,7 @@ public class Comment {
 
   @Column(nullable = false)
   private String userId;
-  
+
   private String profileImage;
 
   @Column(nullable = false)
