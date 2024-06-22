@@ -2,6 +2,8 @@ package com.felipe.community_post_service.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.felipe.community_post_service.GenerateMocks;
+import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
+import com.felipe.community_post_service.dtos.CommentResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
@@ -9,7 +11,9 @@ import com.felipe.community_post_service.dtos.PostUpdateDTO;
 import com.felipe.community_post_service.dtos.mappers.PostMapper;
 import com.felipe.community_post_service.exceptions.AccessDeniedException;
 import com.felipe.community_post_service.exceptions.RecordNotFoundException;
+import com.felipe.community_post_service.models.Comment;
 import com.felipe.community_post_service.models.Post;
+import com.felipe.community_post_service.services.CommentService;
 import com.felipe.community_post_service.services.PostService;
 import com.felipe.community_post_service.services.UploadService;
 import com.felipe.community_post_service.util.response.CustomResponseBody;
@@ -38,6 +42,7 @@ import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -66,6 +71,9 @@ public class PostControllerTest {
 
   @MockBean
   UploadService uploadService;
+
+  @MockBean
+  CommentService commentService;
 
   @MockBean
   PostMapper postMapper;
@@ -524,5 +532,35 @@ public class PostControllerTest {
     verify(this.postService, times(1)).deleteAllFromUser("02");
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
+  }
+
+  @Test
+  @DisplayName("insertComment - Should return a success response with created status code and the inserted comment")
+  void insertCommentSuccess() throws Exception {
+    Comment comment = this.mockData.getComments().get(0);
+    CommentResponseDTO commentResponseDTO = new CommentResponseDTO(comment);
+    CommentCreateAndUpdateDTO commentDTO = new CommentCreateAndUpdateDTO("A great comment");
+    String jsonBody = this.objectMapper.writeValueAsString(commentDTO);
+
+    when(this.commentService.insertComment("02", "01", commentDTO)).thenReturn(comment);
+
+    this.mockMvc.perform(post(BASE_URL + "/01/comments")
+      .contentType(MediaType.APPLICATION_JSON).content(jsonBody)
+      .header("userId", "02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isCreated())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.CREATED.value()))
+      .andExpect(jsonPath("$.message").value("Comentário inserido com sucesso no post de id: '01'"))
+      .andExpect(jsonPath("$.data.id").value(commentResponseDTO.id()))
+      .andExpect(jsonPath("$.data.content").value(commentResponseDTO.content()))
+      .andExpect(jsonPath("$.data.username").value(commentResponseDTO.username()))
+      .andExpect(jsonPath("$.data.profileImage").value(commentResponseDTO.profileImage()))
+      .andExpect(jsonPath("$.data.userId").value(commentResponseDTO.userId()))
+      .andExpect(jsonPath("$.data.postId").value(commentResponseDTO.postId()))
+      .andExpect(jsonPath("$.data.createdAt").value(commentResponseDTO.createdAt().toString()))
+      .andExpect(jsonPath("$.data.updatedAt").value(commentResponseDTO.updatedAt().toString()));
+
+    verify(this.commentService, times(1)).insertComment("02", "01", commentDTO);
   }
 }
