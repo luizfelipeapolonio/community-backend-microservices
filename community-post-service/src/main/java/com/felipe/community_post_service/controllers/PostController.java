@@ -1,6 +1,7 @@
 package com.felipe.community_post_service.controllers;
 
 import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
+import com.felipe.community_post_service.dtos.CommentPageResponseDTO;
 import com.felipe.community_post_service.dtos.CommentResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
@@ -203,6 +204,31 @@ public class PostController {
     response.setCode(HttpStatus.CREATED);
     response.setMessage("Comentário inserido com sucesso no post de id: '" + postId +"'");
     response.setData(commentResponseDTO);
+    return response;
+  }
+
+  @GetMapping("/{postId}/comments")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<CommentPageResponseDTO> getAllPostComments(
+    @PathVariable String postId,
+    @RequestParam(defaultValue = "0") int page
+  ) {
+    Page<Comment> allCommentsPage = this.commentService.getAllPostComments(postId, page);
+    List<CommentResponseDTO> commentResponseDTOs = allCommentsPage.getContent()
+      .stream()
+      .map(CommentResponseDTO::new)
+      .toList();
+    CommentPageResponseDTO commentPageResponseDTO = new CommentPageResponseDTO(
+      commentResponseDTOs,
+      allCommentsPage.getTotalElements(),
+      allCommentsPage.getTotalPages()
+    );
+
+    CustomResponseBody<CommentPageResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os comentários do post de id: '" + postId + "'");
+    response.setData(commentPageResponseDTO);
     return response;
   }
 }

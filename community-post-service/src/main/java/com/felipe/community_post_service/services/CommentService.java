@@ -5,6 +5,9 @@ import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
 import com.felipe.community_post_service.models.Comment;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.CommentRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -34,5 +37,11 @@ public class CommentService {
     newComment.setPost(post);
 
     return this.commentRepository.save(newComment);
+  }
+
+  public Page<Comment> getAllPostComments(String postId, int pageNumber) {
+    Post foundPost = this.postService.getById(postId);
+    Pageable pagination = PageRequest.of(pageNumber, 10);
+    return this.commentRepository.findAllByPostId(foundPost.getId(), pagination);
   }
 }
