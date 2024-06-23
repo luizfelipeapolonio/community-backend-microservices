@@ -3,6 +3,7 @@ package com.felipe.community_post_service.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.felipe.community_post_service.GenerateMocks;
 import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
+import com.felipe.community_post_service.dtos.CommentPageResponseDTO;
 import com.felipe.community_post_service.dtos.CommentResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
@@ -562,5 +563,39 @@ public class PostControllerTest {
       .andExpect(jsonPath("$.data.updatedAt").value(commentResponseDTO.updatedAt().toString()));
 
     verify(this.commentService, times(1)).insertComment("02", "01", commentDTO);
+  }
+
+  @Test
+  @DisplayName("getAllPostComments - Should return a success response with Ok status code and a Page with all comments")
+  void getAllPostCommentsSuccess() throws Exception {
+    List<Comment> comments = List.of(this.mockData.getComments().get(0), this.mockData.getComments().get(1));
+    Page<Comment> allCommentsPage = new PageImpl<>(comments);
+    List<CommentResponseDTO> commentResponseDTOs = allCommentsPage.getContent()
+      .stream()
+      .map(CommentResponseDTO::new)
+      .toList();
+
+    CommentPageResponseDTO commentPageResponseDTO = new CommentPageResponseDTO(
+      commentResponseDTOs,
+      allCommentsPage.getTotalElements(),
+      allCommentsPage.getTotalPages()
+    );
+
+    CustomResponseBody<CommentPageResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os comentários do post de id: '01'");
+    response.setData(commentPageResponseDTO);
+
+    String jsonResponseBody = this.objectMapper.writeValueAsString(response);
+
+    when(this.commentService.getAllPostComments("01", 0)).thenReturn(allCommentsPage);
+
+    this.mockMvc.perform(get(BASE_URL + "/01/comments")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(content().json(jsonResponseBody));
+
+    verify(this.commentService, times(1)).getAllPostComments("01", 0);
   }
 }

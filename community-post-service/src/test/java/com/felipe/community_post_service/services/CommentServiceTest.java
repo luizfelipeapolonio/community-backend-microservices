@@ -13,8 +13,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.Mockito.when;
@@ -77,5 +82,27 @@ public class CommentServiceTest {
     verify(this.postService, times(1)).getById("01");
     verify(this.userClient, times(1)).getUserInfos("02");
     verify(this.commentRepository, times(1)).save(any(Comment.class));
+  }
+
+  @Test
+  @DisplayName("getAllPostComments - Should successfully get all comments from a post and return it as a Page")
+  void getAllPostCommentsSuccess() {
+    Post post = this.mockData.getPosts().get(0);
+    List<Comment> comments = List.of(this.mockData.getComments().get(0), this.mockData.getComments().get(1));
+    Pageable pagination = PageRequest.of(0, 10);
+    Page<Comment> allCommentsPage = new PageImpl<>(comments);
+
+    when(this.postService.getById("01")).thenReturn(post);
+    when(this.commentRepository.findAllByPostId(post.getId(), pagination)).thenReturn(allCommentsPage);
+
+    Page<Comment> commentsPage = this.commentService.getAllPostComments("01", 0);
+
+    assertThat(commentsPage.getContent())
+      .allSatisfy(comment -> assertThat(comment.getPost().getId()).isEqualTo(post.getId()))
+      .hasSize(2);
+
+    verify(this.postService, times(1)).getById("01");
+    verify(this.commentRepository, times(1)).findAllByPostId(post.getId(), pagination);
+
   }
 }
