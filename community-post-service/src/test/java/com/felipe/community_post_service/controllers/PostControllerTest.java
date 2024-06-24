@@ -6,6 +6,7 @@ import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
 import com.felipe.community_post_service.dtos.CommentPageResponseDTO;
 import com.felipe.community_post_service.dtos.CommentResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
+import com.felipe.community_post_service.dtos.PostFullResponseDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
 import com.felipe.community_post_service.dtos.PostUpdateDTO;
@@ -43,6 +44,7 @@ import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -202,26 +204,38 @@ public class PostControllerTest {
       post.getCreatedAt(),
       post.getUpdatedAt()
     );
+    List<Comment> comments = List.of(this.mockData.getComments().get(0), this.mockData.getComments().get(1));
+    Page<Comment> commentsPage = new PageImpl<>(comments);
+    List<CommentResponseDTO> commentResponseDTOs = commentsPage.getContent()
+      .stream()
+      .map(CommentResponseDTO::new)
+      .toList();
+    CommentPageResponseDTO commentPageResponseDTO = new CommentPageResponseDTO(
+      commentResponseDTOs,
+      commentsPage.getTotalElements(),
+      commentsPage.getTotalPages()
+    );
+    PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO);
+
+    CustomResponseBody<PostFullResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Post de id: '01' encontrado");
+    response.setData(postFullResponseDTO);
+
+    String jsonResponseBody = this.objectMapper.writeValueAsString(response);
 
     when(this.postService.getById("01")).thenReturn(post);
+    when(this.commentService.getAllPostComments("01", 0)).thenReturn(commentsPage);
     when(this.postMapper.toPostResponseDTO(post)).thenReturn(postResponseDTO);
 
     this.mockMvc.perform(get(BASE_URL + "/01")
       .accept(MediaType.APPLICATION_JSON))
       .andExpect(status().isOk())
-      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
-      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
-      .andExpect(jsonPath("$.message").value("Post de id: '01' encontrado"))
-      .andExpect(jsonPath("$.data.id").value(postResponseDTO.id()))
-      .andExpect(jsonPath("$.data.title").value(postResponseDTO.title()))
-      .andExpect(jsonPath("$.data.content").value(postResponseDTO.content()))
-      .andExpect(jsonPath("$.data.ownerId").value(postResponseDTO.ownerId()))
-      .andExpect(jsonPath("$.data.tags[0]").value(postResponseDTO.tags()[0]))
-      .andExpect(jsonPath("$.data.tags[1]").value(postResponseDTO.tags()[1]))
-      .andExpect(jsonPath("$.data.createdAt").value(postResponseDTO.createdAt().toString()))
-      .andExpect(jsonPath("$.data.updatedAt").value(postResponseDTO.updatedAt().toString()));
+      .andExpect(content().json(jsonResponseBody));
 
     verify(this.postService, times(1)).getById("01");
+    verify(this.commentService, times(1)).getAllPostComments("01", 0);
     verify(this.postMapper, times(1)).toPostResponseDTO(post);
   }
 
@@ -597,5 +611,79 @@ public class PostControllerTest {
       .andExpect(content().json(jsonResponseBody));
 
     verify(this.commentService, times(1)).getAllPostComments("01", 0);
+  }
+
+  @Test
+  @DisplayName("edit - Should return a success response with Ok status code and the edited comment")
+  void editSuccess() throws Exception {
+    Comment comment = this.mockData.getComments().get(0);
+    CommentCreateAndUpdateDTO commentDTO = new CommentCreateAndUpdateDTO("Updated comment");
+    String jsonBody = this.objectMapper.writeValueAsString(commentDTO);
+    CommentResponseDTO commentResponseDTO = new CommentResponseDTO(comment);
+
+    when(this.commentService.edit("01", "01", "02", commentDTO)).thenReturn(comment);
+
+    this.mockMvc.perform(patch(BASE_URL + "/01/comments/01")
+      .contentType(MediaType.APPLICATION_JSON).content(jsonBody)
+      .accept(MediaType.APPLICATION_JSON)
+      .header("userId", "02"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Comentário editado com sucesso"))
+      .andExpect(jsonPath("$.data.id").value(commentResponseDTO.id()))
+      .andExpect(jsonPath("$.data.content").value(commentResponseDTO.content()))
+      .andExpect(jsonPath("$.data.username").value(commentResponseDTO.username()))
+      .andExpect(jsonPath("$.data.profileImage").value(commentResponseDTO.profileImage()))
+      .andExpect(jsonPath("$.data.userId").value(commentResponseDTO.userId()))
+      .andExpect(jsonPath("$.data.postId").value(commentResponseDTO.postId()))
+      .andExpect(jsonPath("$.data.createdAt").value(commentResponseDTO.createdAt().toString()))
+      .andExpect(jsonPath("$.data.updatedAt").value(commentResponseDTO.updatedAt().toString()));
+
+    verify(this.commentService, times(1)).edit("01", "01", "02", commentDTO);
+  }
+
+  @Test
+  @DisplayName("edit - Should return an error response with forbidden status code")
+  void editFailsByAccessDenied() throws Exception {
+    CommentCreateAndUpdateDTO commentDTO = new CommentCreateAndUpdateDTO("Updated comment");
+    String jsonBody = this.objectMapper.writeValueAsString(commentDTO);
+
+    when(this.commentService.edit("01", "01", "01", commentDTO))
+      .thenThrow(new AccessDeniedException("Você não tem permissão para alterar este recurso"));
+
+    this.mockMvc.perform(patch(BASE_URL + "/01/comments/01")
+      .contentType(MediaType.APPLICATION_JSON).content(jsonBody)
+      .accept(MediaType.APPLICATION_JSON)
+      .header("userId", "01"))
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.FORBIDDEN.value()))
+      .andExpect(jsonPath("$.message").value("Você não tem permissão para alterar este recurso"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.commentService, times(1)).edit("01", "01", "01", commentDTO);
+  }
+
+  @Test
+  @DisplayName("edit - Should return an error response with not found status code")
+  void editFailsByCommentNotFound() throws Exception {
+    CommentCreateAndUpdateDTO commentDTO = new CommentCreateAndUpdateDTO("Updated comment");
+    String jsonBody = this.objectMapper.writeValueAsString(commentDTO);
+
+    when(this.commentService.edit("01", "01", "02", commentDTO))
+      .thenThrow(new RecordNotFoundException("Comentário de id: '01' não encontrado"));
+
+    this.mockMvc.perform(patch(BASE_URL + "/01/comments/01")
+      .contentType(MediaType.APPLICATION_JSON).content(jsonBody)
+      .accept(MediaType.APPLICATION_JSON)
+      .header("userId", "02"))
+      .andExpect(status().isNotFound())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
+      .andExpect(jsonPath("$.message").value("Comentário de id: '01' não encontrado"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.commentService, times(1)).edit("01", "01", "02", commentDTO);
   }
 }

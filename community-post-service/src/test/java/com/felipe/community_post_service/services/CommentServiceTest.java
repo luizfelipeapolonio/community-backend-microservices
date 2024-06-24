@@ -3,6 +3,8 @@ package com.felipe.community_post_service.services;
 import com.felipe.community_post_service.GenerateMocks;
 import com.felipe.community_post_service.clients.UserClient;
 import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
+import com.felipe.community_post_service.exceptions.AccessDeniedException;
+import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Comment;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.CommentRepository;
@@ -21,12 +23,15 @@ import org.springframework.data.domain.Pageable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.any;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchException;
 
 @ExtendWith(MockitoExtension.class)
 public class CommentServiceTest {
@@ -103,6 +108,64 @@ public class CommentServiceTest {
 
     verify(this.postService, times(1)).getById("01");
     verify(this.commentRepository, times(1)).findAllByPostId(post.getId(), pagination);
+  }
 
+  @Test
+  @DisplayName("edit - Should successfully edit a comment and return it")
+  void editSuccess() {
+    Comment comment = this.mockData.getComments().get(0);
+    CommentCreateAndUpdateDTO commentDTO = new CommentCreateAndUpdateDTO("Updated comment content");
+
+    when(this.commentRepository.findByIdAndPostId("01", "01")).thenReturn(Optional.of(comment));
+    when(this.commentRepository.save(comment)).thenReturn(comment);
+
+    Comment editedComment = this.commentService.edit("01", "01", "02", commentDTO);
+
+    assertThat(editedComment.getId()).isEqualTo(comment.getId());
+    assertThat(editedComment.getContent()).isEqualTo(commentDTO.content());
+    assertThat(editedComment.getUsername()).isEqualTo(comment.getUsername());
+    assertThat(editedComment.getUserId()).isEqualTo(comment.getUserId());
+    assertThat(editedComment.getProfileImage()).isEqualTo(comment.getProfileImage());
+    assertThat(editedComment.getPost().getId()).isEqualTo(comment.getPost().getId());
+    assertThat(editedComment.getCreatedAt()).isEqualTo(comment.getCreatedAt());
+    assertThat(editedComment.getUpdatedAt()).isEqualTo(comment.getUpdatedAt());
+
+    verify(this.commentRepository, times(1)).findByIdAndPostId("01", "01");
+    verify(this.commentRepository, times(1)).save(comment);
+  }
+
+  @Test
+  @DisplayName("edit - Should throw an AccessDeniedException if the user id is different from post user id")
+  void editFailsByDifferentUserId() {
+    Comment comment = this.mockData.getComments().get(0);
+    CommentCreateAndUpdateDTO commentDTO = new CommentCreateAndUpdateDTO("Updated content");
+
+    when(this.commentRepository.findByIdAndPostId("01", "01")).thenReturn(Optional.of(comment));
+
+    Exception thrown = catchException(() -> this.commentService.edit("01", "01", "01", commentDTO));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(AccessDeniedException.class)
+      .hasMessage("Você não tem permissão para alterar este recurso");
+
+    verify(this.commentRepository, times(1)).findByIdAndPostId("01", "01");
+    verify(this.commentRepository, never()).save(any(Comment.class));
+  }
+
+  @Test
+  @DisplayName("edit - Should throw a RecordNotFoundException if the comment is not found")
+  void editFailsByCommentNotFound() {
+    CommentCreateAndUpdateDTO commentDTO = new CommentCreateAndUpdateDTO("UpdatedContent");
+
+    when(this.commentRepository.findByIdAndPostId("01", "01")).thenReturn(Optional.empty());
+
+    Exception thrown = catchException(() -> this.commentService.edit("01", "01", "02", commentDTO));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(RecordNotFoundException.class)
+      .hasMessage("Comentário de id: '01' não encontrado");
+
+    verify(this.commentRepository, times(1)).findByIdAndPostId("01", "01");
+    verify(this.commentRepository, never()).save(any(Comment.class));
   }
 }
