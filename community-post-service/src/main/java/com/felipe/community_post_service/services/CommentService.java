@@ -2,6 +2,8 @@ package com.felipe.community_post_service.services;
 
 import com.felipe.community_post_service.clients.UserClient;
 import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
+import com.felipe.community_post_service.exceptions.AccessDeniedException;
+import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Comment;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.CommentRepository;
@@ -43,5 +45,17 @@ public class CommentService {
     Post foundPost = this.postService.getById(postId);
     Pageable pagination = PageRequest.of(pageNumber, 10);
     return this.commentRepository.findAllByPostId(foundPost.getId(), pagination);
+  }
+
+  public Comment edit(String postId, String commentId, String userId, CommentCreateAndUpdateDTO commentDTO) {
+    return this.commentRepository.findByIdAndPostId(commentId, postId)
+      .map(foundComment -> {
+        if(!foundComment.getUserId().equals(userId)) {
+          throw new AccessDeniedException("Você não tem permissão para alterar este recurso");
+        }
+        foundComment.setContent(commentDTO.content());
+        return this.commentRepository.save(foundComment);
+      })
+      .orElseThrow(() -> new RecordNotFoundException("Comentário de id: '" + commentId  +"' não encontrado"));
   }
 }

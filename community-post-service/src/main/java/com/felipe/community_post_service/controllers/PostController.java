@@ -4,6 +4,7 @@ import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
 import com.felipe.community_post_service.dtos.CommentPageResponseDTO;
 import com.felipe.community_post_service.dtos.CommentResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
+import com.felipe.community_post_service.dtos.PostFullResponseDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
 import com.felipe.community_post_service.dtos.PostUpdateDTO;
@@ -112,15 +113,26 @@ public class PostController {
 
   @GetMapping("/{postId}")
   @ResponseStatus(HttpStatus.OK)
-  public CustomResponseBody<PostResponseDTO> getById(@PathVariable String postId) {
+  public CustomResponseBody<PostFullResponseDTO> getById(@PathVariable String postId) {
     Post foundPost = this.postService.getById(postId);
+    Page<Comment> allCommentsPage = this.commentService.getAllPostComments(foundPost.getId(), 0);
+    List<CommentResponseDTO> commentResponseDTOs = allCommentsPage.getContent()
+      .stream()
+      .map(CommentResponseDTO::new)
+      .toList();
+    CommentPageResponseDTO commentPageResponseDTO = new CommentPageResponseDTO(
+      commentResponseDTOs,
+      allCommentsPage.getTotalElements(),
+      allCommentsPage.getTotalPages()
+    );
     PostResponseDTO postResponseDTO = this.postMapper.toPostResponseDTO(foundPost);
+    PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO);
 
-    CustomResponseBody<PostResponseDTO> response = new CustomResponseBody<>();
+    CustomResponseBody<PostFullResponseDTO> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.SUCCESS);
     response.setCode(HttpStatus.OK);
     response.setMessage("Post de id: '" + postId + "' encontrado");
-    response.setData(postResponseDTO);
+    response.setData(postFullResponseDTO);
     return response;
   }
 
@@ -229,6 +241,25 @@ public class PostController {
     response.setCode(HttpStatus.OK);
     response.setMessage("Todos os comentários do post de id: '" + postId + "'");
     response.setData(commentPageResponseDTO);
+    return response;
+  }
+
+  @PatchMapping("/{postId}/comments/{commentId}")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<CommentResponseDTO> edit(
+    @RequestHeader("userId") String userId,
+    @PathVariable String postId,
+    @PathVariable String commentId,
+    @RequestBody @Valid CommentCreateAndUpdateDTO commentDTO
+  ) {
+    Comment editedComment = this.commentService.edit(postId, commentId, userId, commentDTO);
+    CommentResponseDTO commentResponseDTO = new CommentResponseDTO(editedComment);
+
+    CustomResponseBody<CommentResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Comentário editado com sucesso");
+    response.setData(commentResponseDTO);
     return response;
   }
 }
