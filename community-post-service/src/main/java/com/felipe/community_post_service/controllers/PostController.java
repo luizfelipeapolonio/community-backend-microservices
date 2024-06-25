@@ -262,4 +262,25 @@ public class PostController {
     response.setData(commentResponseDTO);
     return response;
   }
+
+  @DeleteMapping("/{postId}/comments/{commentId}")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<Map<String, CommentResponseDTO>> deleteComment(
+    @RequestHeader("userId") String userId,
+    @PathVariable String postId,
+    @PathVariable String commentId
+  ) {
+    Comment deletedComment = this.commentService.delete(postId, commentId, userId);
+    CommentResponseDTO commentResponseDTO = new CommentResponseDTO(deletedComment);
+
+    Map<String, CommentResponseDTO> deletedCommentMap = new HashMap<>();
+    deletedCommentMap.put("deletedComment", commentResponseDTO);
+
+    CustomResponseBody<Map<String, CommentResponseDTO>> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Comentário excluído com sucesso");
+    response.setData(deletedCommentMap);
+    return response;
+  }
 }

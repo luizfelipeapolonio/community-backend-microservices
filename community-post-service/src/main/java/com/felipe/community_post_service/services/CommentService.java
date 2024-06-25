@@ -58,4 +58,16 @@ public class CommentService {
       })
       .orElseThrow(() -> new RecordNotFoundException("Comentário de id: '" + commentId  +"' não encontrado"));
   }
+
+  public Comment delete(String postId, String commentId, String userId) {
+    Comment comment = this.commentRepository.findByIdAndPostId(commentId, postId)
+      .orElseThrow(() -> new RecordNotFoundException("Comentário de id: '" + commentId + "' não encontrado"));
+
+    if(!comment.getUserId().equals(userId)) {
+      throw new AccessDeniedException("Você não tem permissão para remover este recurso");
+    }
+
+    this.commentRepository.deleteById(comment.getId());
+    return comment;
+  }
 }
