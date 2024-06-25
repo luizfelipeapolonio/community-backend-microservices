@@ -25,11 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 
@@ -167,5 +169,60 @@ public class CommentServiceTest {
 
     verify(this.commentRepository, times(1)).findByIdAndPostId("01", "01");
     verify(this.commentRepository, never()).save(any(Comment.class));
+  }
+
+  @Test
+  @DisplayName("delete - Should successfully delete a comment and return the deleted comment")
+  void deleteSuccess() {
+    Comment comment = this.mockData.getComments().get(0);
+
+    when(this.commentRepository.findByIdAndPostId("01", "01")).thenReturn(Optional.of(comment));
+    doNothing().when(this.commentRepository).deleteById(comment.getId());
+
+    Comment deletedComment = this.commentService.delete("01", "01", "02");
+
+    assertThat(deletedComment.getId()).isEqualTo(comment.getId());
+    assertThat(deletedComment.getContent()).isEqualTo(comment.getContent());
+    assertThat(deletedComment.getUsername()).isEqualTo(comment.getUsername());
+    assertThat(deletedComment.getProfileImage()).isEqualTo(comment.getProfileImage());
+    assertThat(deletedComment.getUserId()).isEqualTo(comment.getUserId());
+    assertThat(deletedComment.getPost().getId()).isEqualTo(comment.getPost().getId());
+    assertThat(deletedComment.getCreatedAt()).isEqualTo(comment.getCreatedAt());
+    assertThat(deletedComment.getUpdatedAt()).isEqualTo(comment.getUpdatedAt());
+
+    verify(this.commentRepository, times(1)).findByIdAndPostId("01", "01");
+    verify(this.commentRepository, times(1)).deleteById(comment.getId());
+  }
+
+  @Test
+  @DisplayName("delete - Should throw a RecordNotFoundException if the comment is not found")
+  void deleteFailsByCommentNotFound() {
+    when(this.commentRepository.findByIdAndPostId("01", "01")).thenReturn(Optional.empty());
+
+    Exception thrown = catchException(() -> this.commentService.delete("01", "01", "02"));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(RecordNotFoundException.class)
+      .hasMessage("Comentário de id: '01' não encontrado");
+
+    verify(this.commentRepository, times(1)).findByIdAndPostId("01", "01");
+    verify(this.commentRepository, never()).deleteById(anyString());
+  }
+
+  @Test
+  @DisplayName("delete - Should throw an AccessDeniedException if the user id is different from comment user id")
+  void deleteFailsByDifferentUserId() {
+    Comment comment = this.mockData.getComments().get(0);
+
+    when(this.commentRepository.findByIdAndPostId("01", "01")).thenReturn(Optional.of(comment));
+
+    Exception thrown = catchException(() -> this.commentService.delete("01", "01", "01"));
+
+    assertThat(thrown)
+      .isExactlyInstanceOf(AccessDeniedException.class)
+      .hasMessage("Você não tem permissão para remover este recurso");
+
+    verify(this.commentRepository, times(1)).findByIdAndPostId("01", "01");
+    verify(this.commentRepository, never()).deleteById(anyString());
   }
 }

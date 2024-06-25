@@ -686,4 +686,67 @@ public class PostControllerTest {
 
     verify(this.commentService, times(1)).edit("01", "01", "02", commentDTO);
   }
+
+  @Test
+  @DisplayName("delete - Should return a success response with Ok status code and the deleted comment")
+  void deleteCommentSuccess() throws Exception {
+    Comment comment = this.mockData.getComments().get(0);
+    CommentResponseDTO commentResponseDTO = new CommentResponseDTO(comment);
+
+    when(this.commentService.delete("01", "01", "02")).thenReturn(comment);
+
+    this.mockMvc.perform(delete(BASE_URL + "/01/comments/01")
+      .header("userId", "02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Comentário excluído com sucesso"))
+      .andExpect(jsonPath("$.data.deletedComment.id").value(commentResponseDTO.id()))
+      .andExpect(jsonPath("$.data.deletedComment.content").value(commentResponseDTO.content()))
+      .andExpect(jsonPath("$.data.deletedComment.username").value(commentResponseDTO.username()))
+      .andExpect(jsonPath("$.data.deletedComment.userId").value(commentResponseDTO.userId()))
+      .andExpect(jsonPath("$.data.deletedComment.postId").value(commentResponseDTO.postId()))
+      .andExpect(jsonPath("$.data.deletedComment.profileImage").value(commentResponseDTO.profileImage()))
+      .andExpect(jsonPath("$.data.deletedComment.createdAt").value(commentResponseDTO.createdAt().toString()))
+      .andExpect(jsonPath("$.data.deletedComment.updatedAt").value(commentResponseDTO.updatedAt().toString()));
+
+    verify(this.commentService, times(1)).delete("01", "01", "02");
+  }
+
+  @Test
+  @DisplayName("delete - Should return an error response with not found status code")
+  void deleteCommentFailsByCommentNotFound() throws Exception {
+    when(this.commentService.delete("01", "01", "02"))
+      .thenThrow(new RecordNotFoundException("Comentário de id: '01' não encontrado"));
+
+    this.mockMvc.perform(delete(BASE_URL + "/01/comments/01")
+      .header("userId", "02")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isNotFound())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
+      .andExpect(jsonPath("$.message").value("Comentário de id: '01' não encontrado"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.commentService, times(1)).delete("01", "01", "02");
+  }
+
+  @Test
+  @DisplayName("delete - Should return an error response with forbidden status code")
+  void deleteCommentFailsByAccessDenied() throws Exception {
+    when(this.commentService.delete("01", "01", "01"))
+      .thenThrow(new AccessDeniedException("Você não tem permissão para remover este recurso"));
+
+    this.mockMvc.perform(delete(BASE_URL + "/01/comments/01")
+      .header("userId", "01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.FORBIDDEN.value()))
+      .andExpect(jsonPath("$.message").value("Você não tem permissão para remover este recurso"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.commentService, times(1)).delete("01", "01", "01");
+  }
 }
