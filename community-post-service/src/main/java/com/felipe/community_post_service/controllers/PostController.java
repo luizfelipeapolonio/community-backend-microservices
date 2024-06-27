@@ -3,6 +3,7 @@ package com.felipe.community_post_service.controllers;
 import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
 import com.felipe.community_post_service.dtos.CommentPageResponseDTO;
 import com.felipe.community_post_service.dtos.CommentResponseDTO;
+import com.felipe.community_post_service.dtos.LikeDislikeResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostFullResponseDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
@@ -10,8 +11,10 @@ import com.felipe.community_post_service.dtos.PostResponseDTO;
 import com.felipe.community_post_service.dtos.PostUpdateDTO;
 import com.felipe.community_post_service.dtos.mappers.PostMapper;
 import com.felipe.community_post_service.models.Comment;
+import com.felipe.community_post_service.models.LikeDislike;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.services.CommentService;
+import com.felipe.community_post_service.services.LikeDislikeService;
 import com.felipe.community_post_service.services.PostService;
 import com.felipe.community_post_service.services.UploadService;
 import com.felipe.community_post_service.util.response.CustomResponseBody;
@@ -36,6 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -45,12 +49,20 @@ public class PostController {
   private final UploadService uploadService;
   private final PostMapper postMapper;
   private final CommentService commentService;
+  private final LikeDislikeService likeDislikeService;
 
-  public PostController(PostService postService, UploadService uploadService, PostMapper postMapper, CommentService commentService) {
+  public PostController(
+    PostService postService,
+    UploadService uploadService,
+    PostMapper postMapper,
+    CommentService commentService,
+    LikeDislikeService likeDislikeService
+  ) {
     this.postService = postService;
     this.uploadService = uploadService;
     this.postMapper = postMapper;
     this.commentService = commentService;
+    this.likeDislikeService = likeDislikeService;
   }
 
   @PostMapping
@@ -281,6 +293,27 @@ public class PostController {
     response.setCode(HttpStatus.OK);
     response.setMessage("Comentário excluído com sucesso");
     response.setData(deletedCommentMap);
+    return response;
+  }
+
+  @PatchMapping("/{postId}/like")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<LikeDislikeResponseDTO> like(
+    @RequestHeader("userId") String userId,
+    @PathVariable String postId
+  ) {
+    Optional<LikeDislike> like = likeDislikeService.like(postId, userId);
+    LikeDislikeResponseDTO likeDTO = null;
+
+    if(like.isPresent()) {
+      likeDTO = new LikeDislikeResponseDTO(like.get());
+    }
+
+    CustomResponseBody<LikeDislikeResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage(like.isPresent() ? "Like inserido com sucesso" : "Like removido com sucesso");
+    response.setData(likeDTO);
     return response;
   }
 }
