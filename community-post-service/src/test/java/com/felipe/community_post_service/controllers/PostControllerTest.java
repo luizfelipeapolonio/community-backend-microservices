@@ -5,6 +5,7 @@ import com.felipe.community_post_service.GenerateMocks;
 import com.felipe.community_post_service.dtos.CommentCreateAndUpdateDTO;
 import com.felipe.community_post_service.dtos.CommentPageResponseDTO;
 import com.felipe.community_post_service.dtos.CommentResponseDTO;
+import com.felipe.community_post_service.dtos.LikeDislikeResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostFullResponseDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
@@ -14,8 +15,10 @@ import com.felipe.community_post_service.dtos.mappers.PostMapper;
 import com.felipe.community_post_service.exceptions.AccessDeniedException;
 import com.felipe.community_post_service.exceptions.RecordNotFoundException;
 import com.felipe.community_post_service.models.Comment;
+import com.felipe.community_post_service.models.LikeDislike;
 import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.services.CommentService;
+import com.felipe.community_post_service.services.LikeDislikeService;
 import com.felipe.community_post_service.services.PostService;
 import com.felipe.community_post_service.services.UploadService;
 import com.felipe.community_post_service.util.response.CustomResponseBody;
@@ -41,6 +44,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -77,6 +81,9 @@ public class PostControllerTest {
 
   @MockBean
   CommentService commentService;
+
+  @MockBean
+  LikeDislikeService likeDislikeService;
 
   @MockBean
   PostMapper postMapper;
@@ -748,5 +755,46 @@ public class PostControllerTest {
       .andExpect(jsonPath("$.data").doesNotExist());
 
     verify(this.commentService, times(1)).delete("01", "01", "01");
+  }
+
+  @Test
+  @DisplayName("like - Should return a success response with Ok status code and the given like")
+  void likeSuccess() throws Exception {
+    LikeDislike like = this.mockData.getLikesDislikes().get(0);
+    LikeDislikeResponseDTO likeDTO = new LikeDislikeResponseDTO(like);
+
+    when(this.likeDislikeService.like("01", "01")).thenReturn(Optional.of(like));
+
+    this.mockMvc.perform(patch(BASE_URL + "/01/like")
+      .header("userId", "01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Like inserido com sucesso"))
+      .andExpect(jsonPath("$.data.id").value(likeDTO.id()))
+      .andExpect(jsonPath("$.data.type").value(likeDTO.type()))
+      .andExpect(jsonPath("$.data.postId").value(likeDTO.postId()))
+      .andExpect(jsonPath("$.data.userId").value(likeDTO.userId()))
+      .andExpect(jsonPath("$.data.givenAt").value(likeDTO.givenAt().toString()));
+
+    verify(this.likeDislikeService, times(1)).like("01", "01");
+  }
+
+  @Test
+  @DisplayName("like - Should return a success response with Ok status code")
+  void likeRemoving() throws Exception {
+    when(this.likeDislikeService.like("01", "01")).thenReturn(Optional.empty());
+
+    this.mockMvc.perform(patch(BASE_URL + "/01/like")
+      .header("userId", "01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Like removido com sucesso"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.likeDislikeService, times(1)).like("01", "01");
   }
 }
