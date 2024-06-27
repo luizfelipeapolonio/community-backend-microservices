@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -27,6 +29,10 @@ public class LikeDislike {
   @CreationTimestamp
   @Column(name = "given_at", nullable = false)
   private LocalDateTime givenAt;
+
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "post_id", nullable = false)
+  private Post post;
 
   public LikeDislike() {}
 
@@ -60,5 +66,13 @@ public class LikeDislike {
 
   public void setGivenAt(LocalDateTime givenAt) {
     this.givenAt = givenAt;
+  }
+
+  public Post getPost() {
+    return this.post;
+  }
+
+  public void setPost(Post post) {
+    this.post = post;
   }
 }
