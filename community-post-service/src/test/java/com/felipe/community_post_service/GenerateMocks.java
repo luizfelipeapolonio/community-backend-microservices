@@ -1,6 +1,7 @@
 package com.felipe.community_post_service;
 
 import com.felipe.community_post_service.models.Comment;
+import com.felipe.community_post_service.models.LikeDislike;
 import com.felipe.community_post_service.models.Post;
 
 import java.time.LocalDateTime;
@@ -11,10 +12,12 @@ public class GenerateMocks {
 
   private final List<Post> posts;
   private final List<Comment> comments;
+  private final List<LikeDislike> likesDislikes;
 
   public GenerateMocks() {
     this.posts = this.generatePosts();
     this.comments = this.generateComments();
+    this.likesDislikes = this.generateLikesDislikes();
   }
 
   public List<Post> getPosts() {
@@ -23,6 +26,10 @@ public class GenerateMocks {
 
   public List<Comment> getComments() {
     return this.comments;
+  }
+
+  public List<LikeDislike> getLikesDislikes() {
+    return this.likesDislikes;
   }
 
   private List<Post> generatePosts() {
@@ -95,5 +102,47 @@ public class GenerateMocks {
     comments.add(comment3);
 
     return comments;
+  }
+
+  private List<LikeDislike> generateLikesDislikes() {
+    List<LikeDislike> likesDislikes = new ArrayList<>();
+    LocalDateTime mockDateTime = LocalDateTime.parse("2024-01-01T12:00:00.123456");
+    Post post1 = this.posts.get(0);
+    Post post2 = this.posts.get(1);
+
+    LikeDislike like1 = new LikeDislike();
+    like1.setId(1L);
+    like1.setUserId("01");
+    like1.setType("like");
+    like1.setPost(post1);
+    like1.setGivenAt(mockDateTime);
+
+    LikeDislike like2 = new LikeDislike();
+    like2.setId(2L);
+    like2.setUserId("02");
+    like2.setType("like");
+    like2.setPost(post1);
+    like2.setGivenAt(mockDateTime);
+
+    LikeDislike dislike1 = new LikeDislike();
+    dislike1.setId(3L);
+    dislike1.setUserId("01");
+    dislike1.setType("dislike");
+    dislike1.setPost(post2);
+    dislike1.setGivenAt(mockDateTime);
+
+    LikeDislike dislike2 = new LikeDislike();
+    dislike2.setId(4L);
+    dislike2.setUserId("02");
+    dislike2.setType("dislike");
+    dislike2.setPost(post2);
+    dislike2.setGivenAt(mockDateTime);
+
+    likesDislikes.add(like1);
+    likesDislikes.add(like2);
+    likesDislikes.add(dislike1);
+    likesDislikes.add(dislike2);
+
+    return likesDislikes;
   }
 }
