@@ -8,6 +8,7 @@ import com.felipe.community_post_service.dtos.CommentResponseDTO;
 import com.felipe.community_post_service.dtos.LikeDislikeResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostFullResponseDTO;
+import com.felipe.community_post_service.dtos.PostLikeDislikeResponseDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
 import com.felipe.community_post_service.dtos.PostUpdateDTO;
@@ -57,6 +58,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
@@ -211,6 +213,7 @@ public class PostControllerTest {
       post.getCreatedAt(),
       post.getUpdatedAt()
     );
+    LikeDislike likeOrDislike = this.mockData.getLikesDislikes().get(0);
     List<Comment> comments = List.of(this.mockData.getComments().get(0), this.mockData.getComments().get(1));
     Page<Comment> commentsPage = new PageImpl<>(comments);
     List<CommentResponseDTO> commentResponseDTOs = commentsPage.getContent()
@@ -222,7 +225,11 @@ public class PostControllerTest {
       commentsPage.getTotalElements(),
       commentsPage.getTotalPages()
     );
-    PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO);
+    PostLikeDislikeResponseDTO postLikeDislikeDTO = new PostLikeDislikeResponseDTO(
+      true,
+      likeOrDislike.getType()
+    );
+    PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO, postLikeDislikeDTO);
 
     CustomResponseBody<PostFullResponseDTO> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.SUCCESS);
@@ -235,8 +242,10 @@ public class PostControllerTest {
     when(this.postService.getById("01")).thenReturn(post);
     when(this.commentService.getAllPostComments("01", 0)).thenReturn(commentsPage);
     when(this.postMapper.toPostResponseDTO(post)).thenReturn(postResponseDTO);
+    when(this.likeDislikeService.checkLikeOrDislike("01", "01")).thenReturn(Optional.of(likeOrDislike));
 
     this.mockMvc.perform(get(BASE_URL + "/01")
+      .header("userId", "01")
       .accept(MediaType.APPLICATION_JSON))
       .andExpect(status().isOk())
       .andExpect(content().json(jsonResponseBody));
@@ -244,6 +253,7 @@ public class PostControllerTest {
     verify(this.postService, times(1)).getById("01");
     verify(this.commentService, times(1)).getAllPostComments("01", 0);
     verify(this.postMapper, times(1)).toPostResponseDTO(post);
+    verify(this.likeDislikeService, times(1)).checkLikeOrDislike("01", "01");
   }
 
   @Test
@@ -253,6 +263,7 @@ public class PostControllerTest {
       .thenThrow(new RecordNotFoundException("Post de id: '01' não encontrado"));
 
     this.mockMvc.perform(get(BASE_URL + "/01")
+      .header("userId", "01")
       .accept(MediaType.APPLICATION_JSON))
       .andExpect(status().isNotFound())
       .andExpect(jsonPath("$.status").value(ResponseConditionStatus.ERROR.getValue()))
@@ -262,6 +273,7 @@ public class PostControllerTest {
 
     verify(this.postService, times(1)).getById("01");
     verify(this.postMapper, never()).toPostResponseDTO(any(Post.class));
+    verify(this.likeDislikeService, never()).checkLikeOrDislike(anyString(), anyString());
   }
 
   @Test

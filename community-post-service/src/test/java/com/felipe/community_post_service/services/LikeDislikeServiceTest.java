@@ -185,4 +185,33 @@ public class LikeDislikeServiceTest {
     verify(this.likeDislikeRepository, times(1)).deleteById(dislike.getId());
     verify(this.likeDislikeRepository, never()).save(any(LikeDislike.class));
   }
+
+  @Test
+  @DisplayName("checkLikeOrDislike - Should return an optional of like or dislike given post id and user id")
+  void checkLikeOrDislikeReturningData() {
+    LikeDislike like = this.mockData.getLikesDislikes().get(0);
+
+    when(this.likeDislikeRepository.findByPostIdAndUserId("01", "01")).thenReturn(Optional.of(like));
+
+    Optional<LikeDislike> likeOrDislike = this.likeDislikeService.checkLikeOrDislike("01", "01");
+
+    assertThat(likeOrDislike.isPresent()).isTrue();
+    assertThat(likeOrDislike.get().getId()).isEqualTo(like.getId());
+    assertThat(likeOrDislike.get().getType()).isEqualTo(like.getType());
+    assertThat(likeOrDislike.get().getUserId()).isEqualTo(like.getUserId());
+    assertThat(likeOrDislike.get().getPost().getId()).isEqualTo(like.getPost().getId());
+    assertThat(likeOrDislike.get().getGivenAt()).isEqualTo(like.getGivenAt());
+
+    verify(this.likeDislikeRepository, times(1)).findByPostIdAndUserId("01", "01");
+  }
+
+  @Test
+  @DisplayName("checkLikeOrDislike - Should return an Optional empty if no like or dislike is found")
+  void checkLikeOrDislikeReturningOptionalEmpty() {
+    when(this.likeDislikeRepository.findByPostIdAndUserId("01", "01")).thenReturn(Optional.empty());
+
+    Optional<LikeDislike> likeOrDislike = this.likeDislikeService.checkLikeOrDislike("01", "01");
+
+    assertThat(likeOrDislike.isEmpty()).isTrue();
+  }
 }
