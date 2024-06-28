@@ -6,6 +6,7 @@ import com.felipe.community_post_service.dtos.CommentResponseDTO;
 import com.felipe.community_post_service.dtos.LikeDislikeResponseDTO;
 import com.felipe.community_post_service.dtos.PostCreateDTO;
 import com.felipe.community_post_service.dtos.PostFullResponseDTO;
+import com.felipe.community_post_service.dtos.PostLikeDislikeResponseDTO;
 import com.felipe.community_post_service.dtos.PostPageResponseDTO;
 import com.felipe.community_post_service.dtos.PostResponseDTO;
 import com.felipe.community_post_service.dtos.PostUpdateDTO;
@@ -125,7 +126,10 @@ public class PostController {
 
   @GetMapping("/{postId}")
   @ResponseStatus(HttpStatus.OK)
-  public CustomResponseBody<PostFullResponseDTO> getById(@PathVariable String postId) {
+  public CustomResponseBody<PostFullResponseDTO> getById(
+    @PathVariable String postId,
+    @RequestHeader("userId") String userId
+  ) {
     Post foundPost = this.postService.getById(postId);
     Page<Comment> allCommentsPage = this.commentService.getAllPostComments(foundPost.getId(), 0);
     List<CommentResponseDTO> commentResponseDTOs = allCommentsPage.getContent()
@@ -138,7 +142,12 @@ public class PostController {
       allCommentsPage.getTotalPages()
     );
     PostResponseDTO postResponseDTO = this.postMapper.toPostResponseDTO(foundPost);
-    PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO);
+    Optional<LikeDislike> likeOrDislike = this.likeDislikeService.checkLikeOrDislike(postId, userId);
+    PostLikeDislikeResponseDTO postLikeDislikeDTO = new PostLikeDislikeResponseDTO(
+      likeOrDislike.isPresent(),
+      likeOrDislike.map(LikeDislike::getType).orElse(null)
+    );
+    PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO, postLikeDislikeDTO);
 
     CustomResponseBody<PostFullResponseDTO> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.SUCCESS);

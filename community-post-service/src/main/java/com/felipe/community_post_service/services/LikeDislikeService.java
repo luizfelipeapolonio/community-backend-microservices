@@ -61,4 +61,8 @@ public class LikeDislikeService {
     LikeDislike dislike = this.likeDislikeRepository.save(newDislike);
     return Optional.of(dislike);
   }
+
+  public Optional<LikeDislike> checkLikeOrDislike(String postId, String userId) {
+    return this.likeDislikeRepository.findByPostIdAndUserId(postId, userId);
+  }
 }
