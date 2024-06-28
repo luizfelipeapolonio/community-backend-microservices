@@ -797,4 +797,45 @@ public class PostControllerTest {
 
     verify(this.likeDislikeService, times(1)).like("01", "01");
   }
+
+  @Test
+  @DisplayName("dislike - Should return a success response with Ok status code and the given dislike")
+  void dislikeSuccess() throws Exception {
+    LikeDislike dislike = this.mockData.getLikesDislikes().get(2);
+    LikeDislikeResponseDTO dislikeDTO = new LikeDislikeResponseDTO(dislike);
+
+    when(this.likeDislikeService.dislike("01", "01")).thenReturn(Optional.of(dislike));
+
+    this.mockMvc.perform(patch(BASE_URL + "/01/dislike")
+      .header("userId", "01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Dislike inserido com sucesso"))
+      .andExpect(jsonPath("$.data.id").value(dislikeDTO.id()))
+      .andExpect(jsonPath("$.data.type").value(dislikeDTO.type()))
+      .andExpect(jsonPath("$.data.postId").value(dislikeDTO.postId()))
+      .andExpect(jsonPath("$.data.userId").value(dislikeDTO.userId()))
+      .andExpect(jsonPath("$.data.givenAt").value(dislikeDTO.givenAt().toString()));
+
+    verify(this.likeDislikeService, times(1)).dislike("01", "01");
+  }
+
+  @Test
+  @DisplayName("dislike - Should return a success response with Ok status code")
+  void dislikeRemoving() throws Exception {
+    when(this.likeDislikeService.dislike("01", "01")).thenReturn(Optional.empty());
+
+    this.mockMvc.perform(patch(BASE_URL + "/01/dislike")
+      .header("userId", "01")
+      .accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value(ResponseConditionStatus.SUCCESS.getValue()))
+      .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+      .andExpect(jsonPath("$.message").value("Dislike removido com sucesso"))
+      .andExpect(jsonPath("$.data").doesNotExist());
+
+    verify(this.likeDislikeService, times(1)).dislike("01", "01");
+  }
 }
