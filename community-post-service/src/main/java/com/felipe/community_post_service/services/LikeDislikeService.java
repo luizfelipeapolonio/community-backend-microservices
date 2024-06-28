@@ -31,6 +31,7 @@ public class LikeDislikeService {
         return Optional.empty();
       }
     }
+
     LikeDislike newLike = new LikeDislike();
     newLike.setType("like");
     newLike.setUserId(userId);
@@ -38,5 +39,26 @@ public class LikeDislikeService {
 
     LikeDislike like = this.likeDislikeRepository.save(newLike);
     return Optional.of(like);
+  }
+
+  public Optional<LikeDislike> dislike(String postId, String userId) {
+    Post post = this.postService.getById(postId);
+    Optional<LikeDislike> givenLikeOrDislike = this.likeDislikeRepository.findByPostIdAndUserId(postId, userId);
+
+    if(givenLikeOrDislike.isPresent()) {
+      this.likeDislikeRepository.deleteById(givenLikeOrDislike.get().getId());
+
+      if(givenLikeOrDislike.get().getType().equals("dislike")) {
+        return Optional.empty();
+      }
+    }
+
+    LikeDislike newDislike = new LikeDislike();
+    newDislike.setType("dislike");
+    newDislike.setUserId(userId);
+    newDislike.setPost(post);
+
+    LikeDislike dislike = this.likeDislikeRepository.save(newDislike);
+    return Optional.of(dislike);
   }
 }

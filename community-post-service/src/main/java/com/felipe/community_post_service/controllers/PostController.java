@@ -316,4 +316,25 @@ public class PostController {
     response.setData(likeDTO);
     return response;
   }
+
+  @PatchMapping("/{postId}/dislike")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<LikeDislikeResponseDTO> dislike(
+    @RequestHeader("userId") String userId,
+    @PathVariable String postId
+  ) {
+    Optional<LikeDislike> dislike = this.likeDislikeService.dislike(postId, userId);
+    LikeDislikeResponseDTO dislikeDTO = null;
+
+    if(dislike.isPresent()) {
+      dislikeDTO = new LikeDislikeResponseDTO(dislike.get());
+    }
+
+    CustomResponseBody<LikeDislikeResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage(dislike.isPresent() ? "Dislike inserido com sucesso" : "Dislike removido com sucesso");
+    response.setData(dislikeDTO);
+    return response;
+  }
 }
