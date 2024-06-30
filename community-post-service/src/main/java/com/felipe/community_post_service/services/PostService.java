@@ -17,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Validated
@@ -47,8 +48,11 @@ public class PostService {
     return this.postRepository.save(newPost);
   }
 
-  public Page<Post> getAllPosts(int pageNumber) {
+  public Page<Post> getAllPosts(String query, int pageNumber) {
     Pageable pagination = PageRequest.of(pageNumber, 10);
+    if(query != null) {
+      return this.postRepository.findAllByTitleOrTagsLike(query, pagination);
+    }
     return this.postRepository.findAll(pagination);
   }
 

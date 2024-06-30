@@ -87,8 +87,11 @@ public class PostController {
 
   @GetMapping
   @ResponseStatus(HttpStatus.OK)
-  public CustomResponseBody<PostPageResponseDTO> getAllPosts(@RequestParam(defaultValue = "0") int page) {
-    Page<Post> postPage = this.postService.getAllPosts(page);
+  public CustomResponseBody<PostPageResponseDTO> getAllPosts(
+    @RequestParam(name = "q", required = false) String query,
+    @RequestParam(defaultValue = "0") int page
+  ) {
+    Page<Post> postPage = this.postService.getAllPosts(query, page);
     List<PostResponseDTO> postsDTO = postPage.getContent()
       .stream()
       .map(this.postMapper::toPostResponseDTO)
@@ -98,11 +101,12 @@ public class PostController {
       postPage.getTotalElements(),
       postPage.getTotalPages()
     );
+    String message = query == null ? "Todos os posts" : "Todos os posts que contém '" + query + "' no título ou tags";
 
     CustomResponseBody<PostPageResponseDTO> response = new CustomResponseBody<>();
     response.setStatus(ResponseConditionStatus.SUCCESS);
     response.setCode(HttpStatus.OK);
-    response.setMessage("Todos os posts");
+    response.setMessage(message);
     response.setData(postPageResponseDTO);
     return response;
   }
