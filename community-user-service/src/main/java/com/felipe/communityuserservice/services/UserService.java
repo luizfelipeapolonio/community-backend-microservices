@@ -1,5 +1,6 @@
 package com.felipe.communityuserservice.services;
 
+import com.felipe.communityuserservice.clients.PostClient;
 import com.felipe.communityuserservice.dtos.UploadDTO;
 import com.felipe.communityuserservice.dtos.UploadResponseDTO;
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
@@ -37,6 +38,7 @@ public class UserService {
   private final JwtService jwtService;
   private final AuthService authService;
   private final UploadService uploadService;
+  private final PostClient postClient;
 
   public UserService(
     UserRepository userRepository,
@@ -44,7 +46,8 @@ public class UserService {
     AuthenticationManager authenticationManager,
     JwtService jwtService,
     AuthService authService,
-    UploadService uploadService
+    UploadService uploadService,
+    PostClient postClient
   ) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
@@ -52,6 +55,7 @@ public class UserService {
     this.jwtService = jwtService;
     this.authService = authService;
     this.uploadService = uploadService;
+    this.postClient = postClient;
   }
 
   public User register(@Valid UserRegisterDTO userRegisterDTO) {
@@ -141,6 +145,7 @@ public class UserService {
     User authenticatedUser = userPrincipal.getUser();
     this.userRepository.deleteById(authenticatedUser.getId());
     this.uploadService.deleteImage(authenticatedUser.getProfileImage());
+    this.postClient.deleteAllPosts(authenticatedUser.getId());
     return authenticatedUser;
   }
 }
