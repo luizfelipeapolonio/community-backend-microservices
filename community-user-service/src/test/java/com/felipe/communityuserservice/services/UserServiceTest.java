@@ -1,5 +1,6 @@
 package com.felipe.communityuserservice.services;
 
+import com.felipe.communityuserservice.clients.PostClient;
 import com.felipe.communityuserservice.dtos.UploadDTO;
 import com.felipe.communityuserservice.dtos.UploadResponseDTO;
 import com.felipe.communityuserservice.dtos.UserLoginDTO;
@@ -62,6 +63,9 @@ public class UserServiceTest {
 
   @Mock
   PasswordEncoder passwordEncoder;
+
+  @Mock
+  PostClient postClient;
 
   @Mock
   AuthenticationManager authenticationManager;
@@ -373,5 +377,6 @@ public class UserServiceTest {
     verify(this.authentication, times(1)).getPrincipal();
     verify(this.userRepository, times(1)).deleteById(user.getId());
     verify(this.uploadService, times(1)).deleteImage(user.getProfileImage());
+    verify(this.postClient, times(1)).deleteAllPosts(user.getId());
   }
 }
