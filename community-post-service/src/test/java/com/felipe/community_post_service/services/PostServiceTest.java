@@ -101,7 +101,7 @@ public class PostServiceTest {
   }
 
   @Test
-  @DisplayName("getAllPosts - Should successfully return all a Page with all posts")
+  @DisplayName("getAllPosts - Should successfully return a Page with all posts")
   void getAllPostsSuccess() {
     List<Post> posts = this.mockData.getPosts();
     Page<Post> postPage = new PageImpl<>(posts);
@@ -109,12 +109,31 @@ public class PostServiceTest {
 
     when(this.postRepository.findAll(pagination)).thenReturn(postPage);
 
-    Page<Post> allPostsPage = this.postService.getAllPosts(0);
+    Page<Post> allPostsPage = this.postService.getAllPosts(null, 0);
 
     assertThat(allPostsPage.getTotalElements()).isEqualTo(2);
     assertThat(allPostsPage.getContent()).isEqualTo(posts);
 
     verify(this.postRepository, times(1)).findAll(pagination);
+    verify(this.postRepository, never()).findAllByTitleOrTagsLike(anyString(), any(Pageable.class));
+  }
+
+  @Test
+  @DisplayName("getAllPosts - Should successfully return a Page with all posts searched by query")
+  void getAllPostsByQuerySuccess() {
+    List<Post> posts = this.mockData.getPosts();
+    Page<Post> postPage = new PageImpl<>(posts);
+    Pageable pagination = PageRequest.of(0, 10);
+
+    when(this.postRepository.findAllByTitleOrTagsLike("great", pagination)).thenReturn(postPage);
+
+    Page<Post> allPostsPage = this.postService.getAllPosts("great", 0);
+
+    assertThat(allPostsPage.getTotalElements()).isEqualTo(2);
+    assertThat(allPostsPage.getContent()).isEqualTo(posts);
+
+    verify(this.postRepository, times(1)).findAllByTitleOrTagsLike("great", pagination);
+    verify(this.postRepository, never()).findAll(any(Pageable.class));
   }
 
   @Test

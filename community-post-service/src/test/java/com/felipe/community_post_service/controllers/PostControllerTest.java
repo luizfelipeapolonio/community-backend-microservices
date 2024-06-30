@@ -186,7 +186,7 @@ public class PostControllerTest {
 
     String jsonResponseBody = this.objectMapper.writeValueAsString(response);
 
-    when(this.postService.getAllPosts(0)).thenReturn(allPostsPage);
+    when(this.postService.getAllPosts(null, 0)).thenReturn(allPostsPage);
     when(this.postMapper.toPostResponseDTO(posts.get(0))).thenReturn(postsResponseDTO.get(0));
     when(this.postMapper.toPostResponseDTO(posts.get(1))).thenReturn(postsResponseDTO.get(1));
 
@@ -194,7 +194,52 @@ public class PostControllerTest {
       .andExpect(status().isOk())
       .andExpect(content().json(jsonResponseBody));
 
-    verify(this.postService, times(1)).getAllPosts(0);
+    verify(this.postService, times(1)).getAllPosts(null, 0);
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
+  }
+
+  @Test
+  @DisplayName("getAllPosts - Should return a success response with Ok status code and all posts searched by query")
+  void getAllPostsByQuerySuccess() throws Exception {
+    List<Post> posts = this.mockData.getPosts();
+    Page<Post> allPostsPage = new PageImpl<>(posts);
+    String postImageUri = "http://localhost:8080/images/uploads/post/image.jpg";
+    List<PostResponseDTO> postsResponseDTO = allPostsPage.getContent().stream()
+      .map(post -> new PostResponseDTO(
+        post.getId(),
+        post.getTitle(),
+        post.getContent(),
+        post.getOwnerId(),
+        post.getTags(),
+        postImageUri,
+        post.getCreatedAt(),
+        post.getUpdatedAt()
+      ))
+      .toList();
+    PostPageResponseDTO postPageResponseDTO = new PostPageResponseDTO(
+      postsResponseDTO,
+      allPostsPage.getTotalElements(),
+      allPostsPage.getTotalPages()
+    );
+
+    CustomResponseBody<PostPageResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os posts que contém 'great' no título ou tags");
+    response.setData(postPageResponseDTO);
+
+    String jsonResponseBody = this.objectMapper.writeValueAsString(response);
+
+    when(this.postService.getAllPosts("great", 0)).thenReturn(allPostsPage);
+    when(this.postMapper.toPostResponseDTO(posts.get(0))).thenReturn(postsResponseDTO.get(0));
+    when(this.postMapper.toPostResponseDTO(posts.get(1))).thenReturn(postsResponseDTO.get(1));
+
+    this.mockMvc.perform(get(BASE_URL + "?q=great").accept(MediaType.APPLICATION_JSON))
+      .andExpect(status().isOk())
+      .andExpect(content().json(jsonResponseBody));
+
+    verify(this.postService, times(1)).getAllPosts("great", 0);
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
   }
