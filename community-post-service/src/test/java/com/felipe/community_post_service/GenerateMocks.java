@@ -56,8 +56,19 @@ public class GenerateMocks {
     post2.setCreatedAt(mockDateTime);
     post2.setUpdatedAt(mockDateTime);
 
+    Post post3 = new Post();
+    post3.setId("03");
+    post3.setTitle("Post 3");
+    post3.setContent("A great content");
+    post3.setPostImage("112233#post/image.jpg");
+    post3.setTags(new String[]{"great", "post", "development"});
+    post3.setOwnerId("01");
+    post3.setCreatedAt(mockDateTime);
+    post3.setUpdatedAt(mockDateTime);
+
     posts.add(post1);
     posts.add(post2);
+    posts.add(post3);
     return posts;
   }
 
