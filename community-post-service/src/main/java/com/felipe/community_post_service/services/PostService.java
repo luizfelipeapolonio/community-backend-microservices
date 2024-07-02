@@ -66,6 +66,11 @@ public class PostService {
     return this.postRepository.findAllByOwnerId(userId, pagination);
   }
 
+  public Page<Post> getAllUserLikedPosts(String userId, int pageNumber) {
+    Pageable pagination = PageRequest.of(pageNumber, 10);
+    return this.postRepository.findAllUserLikedPosts(userId, pagination);
+  }
+
   public Post update(
     String postId,
     String userId,

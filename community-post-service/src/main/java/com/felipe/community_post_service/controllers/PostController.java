@@ -128,6 +128,31 @@ public class PostController {
     return response;
   }
 
+  @GetMapping("/liked")
+  @ResponseStatus(HttpStatus.OK)
+  public CustomResponseBody<PostPageResponseDTO> getAllUserLikedPosts(
+    @RequestHeader("userId") String userId,
+    @RequestParam(defaultValue = "0") int page
+  ) {
+    Page<Post> userLikedPosts = this.postService.getAllUserLikedPosts(userId, page);
+    List<PostResponseDTO> postDTOs = userLikedPosts.getContent()
+      .stream()
+      .map(this.postMapper::toPostResponseDTO)
+      .toList();
+    PostPageResponseDTO postPageResponseDTO = new PostPageResponseDTO(
+      postDTOs,
+      userLikedPosts.getTotalElements(),
+      userLikedPosts.getTotalPages()
+    );
+
+    CustomResponseBody<PostPageResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os posts marcados como 'gostei' do usuário de id: '" + userId + "'");
+    response.setData(postPageResponseDTO);
+    return response;
+  }
+
   @GetMapping("/{postId}")
   @ResponseStatus(HttpStatus.OK)
   public CustomResponseBody<PostFullResponseDTO> getById(
