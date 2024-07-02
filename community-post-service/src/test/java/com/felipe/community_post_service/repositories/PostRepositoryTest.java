@@ -1,6 +1,7 @@
 package com.felipe.community_post_service.repositories;
 
 import com.felipe.community_post_service.GenerateMocks;
+import com.felipe.community_post_service.models.LikeDislike;
 import com.felipe.community_post_service.models.Post;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
@@ -89,6 +90,55 @@ public class PostRepositoryTest {
       assertThat(post.getUpdatedAt()).isEqualTo(post1.getUpdatedAt());
       assertThat(post.getComments().size()).isEqualTo(post1.getComments().size());
       assertThat(post.getLikeDislike().size()).isEqualTo(post1.getLikeDislike().size());
+    });
+  }
+
+  @Test
+  @DisplayName("findAllUserLikedPosts - Should successfully return all user liked posts")
+  void findAllUserLikedPostsSuccess() {
+    Post post1 = this.mockData.getPosts().get(0);
+    post1.setId("01");
+
+    Post post2 = this.mockData.getPosts().get(1);
+    post2.setId("02");
+
+    Post post3 = this.mockData.getPosts().get(2);
+    post3.setId("03");
+
+    LikeDislike like1 = this.mockData.getLikesDislikes().get(0);
+    like1.setId(null);
+    like1.setPost(post1);
+    like1.setUserId("01");
+
+    LikeDislike like2 = this.mockData.getLikesDislikes().get(1);
+    like2.setId(null);
+    like2.setPost(post2);
+    like2.setUserId("01");
+
+    LikeDislike dislike1 = this.mockData.getLikesDislikes().get(2);
+    dislike1.setId(null);
+    dislike1.setPost(post3);
+    dislike1.setUserId("01");
+
+    post1.getLikeDislike().add(like1);
+    post2.getLikeDislike().add(like2);
+    post3.getLikeDislike().add(dislike1);
+
+    this.entityManager.persist(post1);
+    this.entityManager.persist(post2);
+    this.entityManager.persist(post3);
+    this.entityManager.persist(like1);
+    this.entityManager.persist(like2);
+    this.entityManager.persist(dislike1);
+
+    Pageable pagination = PageRequest.of(0, 10);
+
+    Page<Post> allUserLikedPosts = this.postRepository.findAllUserLikedPosts("01", pagination);
+
+    assertThat(allUserLikedPosts.getTotalElements()).isEqualTo(2);
+    assertThat(allUserLikedPosts.getContent()).allSatisfy(post -> {
+      assertThat(post.getLikeDislike().stream().map(LikeDislike::getUserId).toList()).containsOnly("01");
+      assertThat(post.getLikeDislike().stream().map(LikeDislike::getType).toList()).containsOnly("like");
     });
   }
 }
