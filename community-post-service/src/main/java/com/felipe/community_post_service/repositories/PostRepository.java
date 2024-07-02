@@ -15,4 +15,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
 
   @Query(value = "SELECT p FROM Post p WHERE p.title LIKE %:query% OR p.tags LIKE %:query%")
   Page<Post> findAllByTitleOrTagsLike(@Param("query") String query, Pageable pageable);
+
+  @Query(value = "SELECT p FROM Post p JOIN p.likeDislike ld WHERE ld.userId = :userId AND ld.type = 'like'")
+  Page<Post> findAllUserLikedPosts(@Param("userId") String userId, Pageable pageable);
 }
