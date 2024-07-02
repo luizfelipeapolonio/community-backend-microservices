@@ -103,7 +103,7 @@ public class PostServiceTest {
   @Test
   @DisplayName("getAllPosts - Should successfully return a Page with all posts")
   void getAllPostsSuccess() {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
     Page<Post> postPage = new PageImpl<>(posts);
     Pageable pagination = PageRequest.of(0, 10);
 
@@ -121,7 +121,7 @@ public class PostServiceTest {
   @Test
   @DisplayName("getAllPosts - Should successfully return a Page with all posts searched by query")
   void getAllPostsByQuerySuccess() {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
     Page<Post> postPage = new PageImpl<>(posts);
     Pageable pagination = PageRequest.of(0, 10);
 
@@ -175,7 +175,7 @@ public class PostServiceTest {
   @Test
   @DisplayName("getAllUserPosts - Should successfully return a Page with all posts from a specific user")
   void getAllUserPostsSuccess() {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
     Page<Post> allUserPostsPage = new PageImpl<>(posts);
     Pageable pagination = PageRequest.of(0, 10);
 
@@ -188,6 +188,22 @@ public class PostServiceTest {
       .containsExactlyInAnyOrderElementsOf(posts.stream().map(Post::getOwnerId).toList());
 
     verify(this.postRepository, times(1)).findAllByOwnerId("02", pagination);
+  }
+
+  @Test
+  @DisplayName("getAllUserLikedPosts - Should successfully return a Page with all user liked posts")
+  void getAllUserLikedPosts() {
+    List<Post> userLikedPosts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
+    Page<Post> allUserLikedPosts = new PageImpl<>(userLikedPosts);
+    Pageable pagination = PageRequest.of(0, 10);
+
+    when(this.postRepository.findAllUserLikedPosts("01", pagination)).thenReturn(allUserLikedPosts);
+
+    Page<Post> userLikedPostsPage = this.postService.getAllUserLikedPosts("01", 0);
+
+    assertThat(userLikedPostsPage.getTotalElements()).isEqualTo(2);
+
+    verify(this.postRepository, times(1)).findAllUserLikedPosts("01", pagination);
   }
 
   @Test
@@ -362,7 +378,7 @@ public class PostServiceTest {
   @Test
   @DisplayName("deleteAllFromUser - Should successfully delete all posts from a specific user")
   void deleteAllFromUserSuccess() {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
 
     when(this.postRepository.findAllByOwnerId("02")).thenReturn(posts);
     doNothing().when(this.postRepository).deleteById(posts.get(0).getId());

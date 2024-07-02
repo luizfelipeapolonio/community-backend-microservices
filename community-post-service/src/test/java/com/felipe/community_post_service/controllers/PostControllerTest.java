@@ -157,7 +157,7 @@ public class PostControllerTest {
   @Test
   @DisplayName("getAllPosts - Should return a success response with Ok status code and all posts")
   void getAllPostsSuccess() throws Exception {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
     Page<Post> allPostsPage = new PageImpl<>(posts);
     String postImageUri = "http://localhost:8080/images/uploads/post/image.jpg";
     List<PostResponseDTO> postsResponseDTO = allPostsPage.getContent().stream()
@@ -202,7 +202,7 @@ public class PostControllerTest {
   @Test
   @DisplayName("getAllPosts - Should return a success response with Ok status code and all posts searched by query")
   void getAllPostsByQuerySuccess() throws Exception {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
     Page<Post> allPostsPage = new PageImpl<>(posts);
     String postImageUri = "http://localhost:8080/images/uploads/post/image.jpg";
     List<PostResponseDTO> postsResponseDTO = allPostsPage.getContent().stream()
@@ -324,7 +324,7 @@ public class PostControllerTest {
   @Test
   @DisplayName("getAllUserPosts - Should return a success response with Ok status code and a Page with all user posts")
   void getAllUserPostsSuccess() throws Exception {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
     Page<Post> allUserPostsPage = new PageImpl<>(posts);
     List<PostResponseDTO> postsResponseDTO = allUserPostsPage.getContent()
       .stream()
@@ -363,6 +363,53 @@ public class PostControllerTest {
       .andExpect(content().json(jsonResponseBody));
 
     verify(this.postService, times(1)).getAllUserPosts("02", 0);
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
+    verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
+  }
+
+  @Test
+  @DisplayName("getAllUserLikedPosts - Should return a success response with Ok status code and a Page with all user liked posts")
+  void getAllUserLikedPostsSuccess() throws Exception {
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
+    Page<Post> allUserPostsPage = new PageImpl<>(posts);
+    List<PostResponseDTO> postsResponseDTO = allUserPostsPage.getContent()
+      .stream()
+      .map(post -> new PostResponseDTO(
+        post.getId(),
+        post.getTitle(),
+        post.getContent(),
+        post.getOwnerId(),
+        post.getTags(),
+        "http://localhost:8080/images/uploads/post/image.jpg",
+        post.getCreatedAt(),
+        post.getUpdatedAt()
+      ))
+      .toList();
+    PostPageResponseDTO postPageResponseDTO = new PostPageResponseDTO(
+      postsResponseDTO,
+      allUserPostsPage.getTotalElements(),
+      allUserPostsPage.getTotalPages()
+    );
+
+    CustomResponseBody<PostPageResponseDTO> response = new CustomResponseBody<>();
+    response.setStatus(ResponseConditionStatus.SUCCESS);
+    response.setCode(HttpStatus.OK);
+    response.setMessage("Todos os posts marcados como 'gostei' do usuário de id: '01'");
+    response.setData(postPageResponseDTO);
+
+    String jsonResponseBody = this.objectMapper.writeValueAsString(response);
+
+    when(this.postService.getAllUserLikedPosts("01", 0)).thenReturn(allUserPostsPage);
+    when(this.postMapper.toPostResponseDTO(posts.get(0))).thenReturn(postsResponseDTO.get(0));
+    when(this.postMapper.toPostResponseDTO(posts.get(1))).thenReturn(postsResponseDTO.get(1));
+
+    this.mockMvc.perform(get(BASE_URL + "/liked")
+      .accept(MediaType.APPLICATION_JSON)
+      .header("userId", "01"))
+      .andExpect(status().isOk())
+      .andExpect(content().json(jsonResponseBody));
+
+    verify(this.postService, times(1)).getAllUserLikedPosts("01", 0);
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(0));
     verify(this.postMapper, times(1)).toPostResponseDTO(posts.get(1));
   }
@@ -574,7 +621,7 @@ public class PostControllerTest {
   @Test
   @DisplayName("deleteAllFromUser - Should return a success response with Ok status code and all deleted posts")
   void deleteAllFromUserSuccess() throws Exception {
-    List<Post> posts = this.mockData.getPosts();
+    List<Post> posts = List.of(this.mockData.getPosts().get(0), this.mockData.getPosts().get(1));
     List<PostResponseDTO> postResponseDTOs = posts.stream()
       .map(post -> new PostResponseDTO(
         post.getId(),
