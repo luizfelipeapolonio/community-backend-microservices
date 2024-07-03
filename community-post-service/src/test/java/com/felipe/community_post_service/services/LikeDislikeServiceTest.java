@@ -12,6 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.Mockito.doNothing;
@@ -213,5 +215,26 @@ public class LikeDislikeServiceTest {
     Optional<LikeDislike> likeOrDislike = this.likeDislikeService.checkLikeOrDislike("01", "01");
 
     assertThat(likeOrDislike.isEmpty()).isTrue();
+  }
+
+  @Test
+  @DisplayName("getLikesAndDislikesQuantity - Should successfully return a post likes and dislikes quantity")
+  void getLikesAndDislikesQuantitySuccess() {
+    List<LikeDislike> likesAndDislikes = List.of(
+      this.mockData.getLikesDislikes().get(0),
+      this.mockData.getLikesDislikes().get(1),
+      this.mockData.getLikesDislikes().get(2)
+    );
+
+    when(this.likeDislikeRepository.findAllByPostId("01")).thenReturn(likesAndDislikes);
+
+    Map<String, Integer> postLikesAndDislikes = this.likeDislikeService.getLikesAndDislikesQuantity("01");
+
+    assertThat(postLikesAndDislikes.containsKey("likes")).isTrue();
+    assertThat(postLikesAndDislikes.containsKey("dislikes")).isTrue();
+    assertThat(postLikesAndDislikes.get("likes")).isEqualTo(2);
+    assertThat(postLikesAndDislikes.get("dislikes")).isEqualTo(1);
+
+    verify(this.likeDislikeRepository, times(1)).findAllByPostId("01");
   }
 }

@@ -270,9 +270,16 @@ public class PostControllerTest {
       commentsPage.getTotalElements(),
       commentsPage.getTotalPages()
     );
+
+    Map<String, Integer> likesAndDislikesQuantity = new HashMap<>(2);
+    likesAndDislikesQuantity.put("likes", 2);
+    likesAndDislikesQuantity.put("dislikes", 1);
+
     PostLikeDislikeResponseDTO postLikeDislikeDTO = new PostLikeDislikeResponseDTO(
       true,
-      likeOrDislike.getType()
+      likeOrDislike.getType(),
+      likesAndDislikesQuantity.get("likes"),
+      likesAndDislikesQuantity.get("dislikes")
     );
     PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO, postLikeDislikeDTO);
 
@@ -288,6 +295,7 @@ public class PostControllerTest {
     when(this.commentService.getAllPostComments("01", 0)).thenReturn(commentsPage);
     when(this.postMapper.toPostResponseDTO(post)).thenReturn(postResponseDTO);
     when(this.likeDislikeService.checkLikeOrDislike("01", "01")).thenReturn(Optional.of(likeOrDislike));
+    when(this.likeDislikeService.getLikesAndDislikesQuantity("01")).thenReturn(likesAndDislikesQuantity);
 
     this.mockMvc.perform(get(BASE_URL + "/01")
       .header("userId", "01")
@@ -299,6 +307,7 @@ public class PostControllerTest {
     verify(this.commentService, times(1)).getAllPostComments("01", 0);
     verify(this.postMapper, times(1)).toPostResponseDTO(post);
     verify(this.likeDislikeService, times(1)).checkLikeOrDislike("01", "01");
+    verify(this.likeDislikeService, times(1)).getLikesAndDislikesQuantity("01");
   }
 
   @Test
