@@ -4,6 +4,16 @@ spring:
 
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: '*'
+            allowedMethods:
+              - GET
+              - POST
+              - PATCH
+              - PUT
+              - DELETE
       routes:
         - id: community-user-service
           uri: lb://COMMUNITY-USER-SERVICE
