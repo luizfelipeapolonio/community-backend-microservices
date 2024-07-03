@@ -172,9 +172,12 @@ public class PostController {
     );
     PostResponseDTO postResponseDTO = this.postMapper.toPostResponseDTO(foundPost);
     Optional<LikeDislike> likeOrDislike = this.likeDislikeService.checkLikeOrDislike(postId, userId);
+    Map<String, Integer> likesAndDislikesQuantity = this.likeDislikeService.getLikesAndDislikesQuantity(postId);
     PostLikeDislikeResponseDTO postLikeDislikeDTO = new PostLikeDislikeResponseDTO(
       likeOrDislike.isPresent(),
-      likeOrDislike.map(LikeDislike::getType).orElse(null)
+      likeOrDislike.map(LikeDislike::getType).orElse(null),
+      likesAndDislikesQuantity.get("likes"),
+      likesAndDislikesQuantity.get("dislikes")
     );
     PostFullResponseDTO postFullResponseDTO = new PostFullResponseDTO(postResponseDTO, commentPageResponseDTO, postLikeDislikeDTO);
 

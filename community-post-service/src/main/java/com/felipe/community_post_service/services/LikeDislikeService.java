@@ -5,6 +5,9 @@ import com.felipe.community_post_service.models.Post;
 import com.felipe.community_post_service.repositories.LikeDislikeRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -64,5 +67,25 @@ public class LikeDislikeService {
 
   public Optional<LikeDislike> checkLikeOrDislike(String postId, String userId) {
     return this.likeDislikeRepository.findByPostIdAndUserId(postId, userId);
+  }
+
+  public Map<String, Integer> getLikesAndDislikesQuantity(String postId) {
+    List<LikeDislike> likesAndDislikes = this.likeDislikeRepository.findAllByPostId(postId);
+
+    int likesQuantity = likesAndDislikes.stream()
+      .filter(likeDislike -> likeDislike.getType().equals("like"))
+      .toList()
+      .size();
+
+    int dislikesQuantity = likesAndDislikes.stream()
+      .filter(likesDislikes -> likesDislikes.getType().equals("dislike"))
+      .toList()
+      .size();
+
+    Map<String, Integer> likesAndDislikesQuantity = new HashMap<>(2);
+    likesAndDislikesQuantity.put("likes", likesQuantity);
+    likesAndDislikesQuantity.put("dislikes", dislikesQuantity);
+
+    return likesAndDislikesQuantity;
   }
 }
