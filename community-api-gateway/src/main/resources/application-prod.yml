@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: community-api-gateway
+
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: '*'
+            allowedMethods:
+              - GET
+              - POST
+              - PATCH
+              - PUT
+              - DELETE
+      routes:
+        - id: community-user-service
+          uri: lb://COMMUNITY-USER-SERVICE
+          predicates:
+            - Path=/auth/**,/users/**
+          filters:
+            - PrefixPath=/api
+            - AuthenticationFilter
+
+        - id: community-upload-service
+          uri: lb://COMMUNITY-UPLOAD-SERVICE
+          predicates:
+            - Path=/images/**
+          filters:
+            - RewritePath=/images, /
+
+        - id: community-post-service
+          uri: lb://COMMUNITY-POST-SERVICE
+          predicates:
+            - Path=/posts/**
+          filters:
+            - PrefixPath=/api
+            - AuthenticationFilter
+  output:
+    ansi:
+      enabled: ALWAYS
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://community-service-discovery:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org:
+      springframework:
+        cloud:
+          gateway: DEBUG
+  reactor:
+    netty:
+      http:
+        client: DEBUG
