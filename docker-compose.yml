@@ -1,25 +1,24 @@
-version: "3.7"
-
 services:
   database:
-    image: postgres
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "5432:5432"
     container_name: "community-database"
     restart: unless-stopped
     volumes:
-      - ./db_community:/var/lib/postgresql/data
-      - ./database_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db_community:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     networks:
       - community_net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
-      timeout: 5s
-      retries: 5
+      timeout: 40s
+      retries: 8
 
   community-service-discovery:
     build: ./community-service-discovery
@@ -64,6 +63,7 @@ services:
         required: true
     networks:
       - community_net
+    restart: always
     depends_on:
       community-service-discovery:
         condition: service_started
@@ -84,6 +84,7 @@ services:
       TZ: "America/Sao_Paulo"
     networks:
       - community_net
+    restart: always
     depends_on:
       community-service-discovery:
         condition: service_started
@@ -104,6 +105,7 @@ services:
       TZ: "America/Sao_Paulo"
     networks:
       - community_net
+    restart: always
     depends_on:
       community-service-discovery:
         condition: service_started

@@ -1,3 +1,0 @@
-CREATE DATABASE community_user_service;
-CREATE DATABASE community_post_service;
-CREATE DATABASE community_upload_service;
